@@ -1,0 +1,33 @@
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE settings
+.idea/
+.vscode/
+*.code-workspace
+
+# Local data, logs, and generated artifacts
+logs/
+results/
+optimization_results/
+tmp/
+temp/
+*.log
+*.csv
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Secrets hygiene
+keys.py
+.env
+*.env

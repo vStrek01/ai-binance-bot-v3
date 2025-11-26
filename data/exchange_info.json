@@ -1,0 +1,5106 @@
+{
+  "BTCUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 100.0,
+    "step_size": 0.001,
+    "tick_size": 0.1,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ETHUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 20.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BCHUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XRPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EOSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LTCUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ETCUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LINKUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XLMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ADAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DASHUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZECUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XTZUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BNBUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ATOMUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ONTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IOTAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BATUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VETUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEOUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "QTUMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IOSTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "THETAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALGOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZILUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KNCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZRXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COMPUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OMGUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOGEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SXPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KAVAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BANDUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RLCUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WAVESUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MKRUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.1,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SNXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DEFIUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.1,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "YFIUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 1.0,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BALUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CRVUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRBUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RUNEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUSHIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EGLDUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SOLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ICXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STORJUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UNIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AVAXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FTMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ENJUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FLMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TOMOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KSMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEARUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AAVEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FILUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RSRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LRCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OCEANUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BELUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CTKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AXSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALPHAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZENUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SKLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GRTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1INCHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UNFIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CHZUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SANDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ANKRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LITUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "REEFUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RVNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SFPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XEMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BTCSTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COTIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CHRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MANAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALICEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HBARUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ONEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LINAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STMXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DENTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CELRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HOTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MTLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OGNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NKNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DGBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000SHIBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BAKEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GTCUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BTCDOMUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.1,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MASKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IOTXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AUDIOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "C98USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ATAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DYDXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000XECUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GALAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CELOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KLAYUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARPAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CTSIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LPTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ENSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PEOPLEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ANTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ROSEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DUSKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FLOWUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IMXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "API3USDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GMTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "APEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WOOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JASMYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DARUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XMRUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "INJUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SPELLUSDT": {
+    "min_qty": 100.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000LUNCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LUNA2USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LDOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CVXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FOOTBALLUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "APTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "QNTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BLUEBIRDUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FXSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HOOKUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MAGICUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TUSDT": {
+    "min_qty": 0.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HIGHUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MINAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ASTRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PHBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AGIXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FETUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GMXUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CFXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ACHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SSVUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CKBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PERPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LQTYUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "USDCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARBUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JOEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AMBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LEVERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRUUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RDNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HFTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XVSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BLURUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EDUUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IDEXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000PEPEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000FLOKIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RADUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UMAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KEYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COMBOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NMRUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MAVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MDTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XVGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WLDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PENDLEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARKMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AGLDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "YGGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DODOXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OXTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SEIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CYBERUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HIFIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GLMRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BICOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STRAXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LOOMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BIGTIMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BONDUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ORBSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STPTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WAXPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BSVUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RIFUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "POLYXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GASUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "POWRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CAKEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MEMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TOKENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ORDIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STEEMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BADGERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ILVUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NTRNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MBLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KASUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BEAMXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000BONKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PYTHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUPERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "USTCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ONGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ETHWUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JTOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000SATSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AUCTIONUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000RATSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ACEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MOVRUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TWTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NFPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BTCUSDC": {
+    "min_qty": 0.001,
+    "min_notional": 100.0,
+    "step_size": 0.001,
+    "tick_size": 0.1,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "ETHUSDC": {
+    "min_qty": 0.001,
+    "min_notional": 20.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "BNBUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "XRPUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "SOLUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "AIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOGEUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "WIFUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MANTAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ONDOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LSKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JUPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZETAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RONINUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUIUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "DYMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LINKUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "PIXELUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ORDIUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "STRKUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MAVIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GLMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PORTALUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TONUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AXLUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MYROUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000PEPEUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "METISUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AEVOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WLDUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "VANRYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BOMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AVAXUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "1000SHIBUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "ETHFIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ENAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BCHUSDC": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "WIFUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "WUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TNSRUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SAGAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEARUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "LTCUSDC": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "TAOUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARBUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "NEOUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "FILUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "OMNIUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BOMEUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "TIAUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "REZUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ETHFIUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "ENAUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "1000BONKUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "BBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NOTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TURBOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MEWUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LISTAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZROUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CRVUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "RENDERUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BANANAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RAREUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SYNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SYSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VOXELUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BRETTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALPACAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "POPCATUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VIDTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NULSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOGSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MBOXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CHESSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FLUXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BSWUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "QUICKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEIROETHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RPLUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AERGOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "POLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UXLINKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEIROUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1MBABYDOGEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KDAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FIDAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FIOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CATIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GHSTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LOKAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HMSTRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "REIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EIGENUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000CATUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SCRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GOATUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MOODENGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SAFEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SANTOSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TROYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PONKEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CETUSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COWUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000000MOGUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GRASSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DRIFTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SWELLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PNUTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ACTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HIPPOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000XUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DEGENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BANUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AKTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SLERFUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SCRTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000WHYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000CHEEMSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "THEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MORPHOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CHILLGUYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KAIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AEROUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ACXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ORCAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MOVEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RAYSOLUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VIRTUALUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SPXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KOMAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ABCCCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AVAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DEGOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VELODROMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MOCAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VANAUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PENGUUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LUMIAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "USUALUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KMNOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CGPTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AIXBTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FARTCOINUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HIVEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DEXEUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PHAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DFUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GRIFFAINUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AI16ZUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZEREBROUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BIOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COOKIEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALCHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SWARMSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SONICUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PROMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SOLVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AVAAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRUMPUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MELANIAUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VTHOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ANIMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PIPPINUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VINEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VVVUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BERAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TSTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LAYERUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HEIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "B3USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IPUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GPSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SHELLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KAITOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KAITOUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "HBARUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "PNUTUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "ADAUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "TRUMPUSDC": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "IPUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "REDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VICUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EPICUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BMTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MUBARAKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FORMUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TUTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BIDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BROCCOLI714USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BROCCOLIF3BUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BANANAS31USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SIRENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BNXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PLUMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JELLYJELLYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PAXGUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WALUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FUNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MLNUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ATHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BABYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FORTHUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PROMPTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XCNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUMPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FHEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KERNELUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "INITUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BANKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EPTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DEEPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HYPERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MEMEFIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FISUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JSTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SIGNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WCTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GUNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PARTIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NILUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUNDIXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AIOTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOLOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HAEDALUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SXTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALPINEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ASRUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "B2USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MILKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SYRUPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OBOLUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DOODUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OGUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZKJUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SKYAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NXPCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AGTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SOPHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MERLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HYPEUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TAIKOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SQDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUMPBTCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AAVEUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "UNIUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "MYXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NEWTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DMCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SAHARAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ICNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IDOL": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BULLAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "IDOLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TANSSIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CROSSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AINUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VELVETUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TACUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ERAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PENGUUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "SLPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZORAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TAGUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZRCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ESPORTSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TREEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "A2ZUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PLAYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NAORISUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TOWNSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PROVEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALLUSDT": {
+    "min_qty": 10.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "INUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "YALAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CARVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AIOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XNYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "USELESSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "DAMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SAPIENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CUDISUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AWEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SOONUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HUMAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RESOLVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SPKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XPLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WLFIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BIOUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "SOMIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BASUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BTRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MITOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HEMIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LINEAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "QUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PTBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ARIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TAKEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BDXNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OPENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1e-07,
+    "tick_size": 0.0,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUFFERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PORT3USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000000BOBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SKATEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HOMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "WLFIUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "FLOCKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SKYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AVNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HOLOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XPINUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZKCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TOSHIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STBLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "0GUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AIAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BARDUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ASTERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRADOORUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BLESSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FLUIDUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HANAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MIRAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AKEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-07,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ORDERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LIGHTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XANUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FFUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "VFYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EDENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRUTHUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "NOMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "2ZUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LYNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EVAAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KGENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "4USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GIGGLEUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MONUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "YBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "METUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "EULUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ENSOUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CLOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "\u6d4b\u8bd5\u6d4b\u8bd5USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RECALLUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZBTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RVVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LABUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RIVERUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "\u5e01\u5b89\u4eba\u751fUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BLUAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TURTLEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "APRUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ONUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "42USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "COMMONUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KITEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ATUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MMTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TRUSTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UAIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "FOLKSUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "STABLEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "JCTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALLOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CLANKERUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BEATUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PIEVERSEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SENTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ZECUSDC": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "GAIBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BOBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  }
+}
