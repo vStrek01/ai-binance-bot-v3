@@ -47,7 +47,7 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
     engine = RiskEngine(cfg)
     exposure = ExposureState(per_symbol={}, total=0.0)
     engine.update_equity(1_000.0)
-    engine.register_trade(TradeEvent(pnl=-25.0, equity=975.0))
+    engine.register_trade(TradeEvent(pnl=-120.0, equity=880.0))
     blocked = engine.evaluate_open(
         OpenTradeRequest(
             symbol="BTCUSDT",
@@ -55,7 +55,7 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
             quantity=1.0,
             price=100.0,
             available_balance=1_000.0,
-            equity=975.0,
+            equity=880.0,
             exposure=exposure,
             filters=None,
         )

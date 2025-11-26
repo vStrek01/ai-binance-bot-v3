@@ -109,3 +109,29 @@ def test_demo_live_runtime_defaults(tmp_path: Path) -> None:
     assert cfg.runtime.dry_run is False
     assert cfg.runtime.live_trading is True
     assert cfg.runtime.use_testnet is True
+
+
+def test_demo_live_risk_daily_loss_cap_is_ten_percent(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("run_mode: demo-live\n", encoding="utf-8")
+
+    cfg = load_config(path=str(config_path), base_dir=tmp_path)
+
+    assert cfg.risk.max_daily_loss_pct == pytest.approx(0.10)
+
+
+def test_non_demo_modes_keep_existing_daily_loss_cap(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+run_mode: backtest
+risk:
+  max_daily_loss_pct: 0.01
+        """.strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    cfg = load_config(path=str(config_path), base_dir=tmp_path)
+
+    assert cfg.risk.max_daily_loss_pct == pytest.approx(0.01)

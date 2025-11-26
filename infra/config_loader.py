@@ -150,16 +150,21 @@ def _apply_mode_defaults(config: Dict[str, Any], run_mode: RunMode) -> None:
     exchange = config.setdefault("exchange", {})
     risk = config.setdefault("risk", {})
 
+    def _ensure_value(target: Dict[str, Any], key: str, value: Any) -> None:
+        current = target.get(key)
+        if current in {None, ""}:
+            target[key] = value
+
     if run_mode == "demo-live":
         runtime.setdefault("dry_run", False)
         runtime.setdefault("live_trading", True)
         runtime.setdefault("use_testnet", True)
         exchange.setdefault("use_testnet", True)
-        exchange.setdefault("rest_base_url", DEMO_REST_BASE_URL)
-        exchange.setdefault("ws_market_url", DEMO_WS_MARKET_URL)
-        exchange.setdefault("ws_user_url", DEMO_WS_USER_URL)
+        _ensure_value(exchange, "rest_base_url", DEMO_REST_BASE_URL)
+        _ensure_value(exchange, "ws_market_url", DEMO_WS_MARKET_URL)
+        _ensure_value(exchange, "ws_user_url", DEMO_WS_USER_URL)
         risk.setdefault("per_trade_risk", 0.001)
-        risk.setdefault("max_daily_loss_pct", 0.01)
+        risk.setdefault("max_daily_loss_pct", 0.10)
         risk.setdefault("max_consecutive_losses", 3)
         risk.setdefault("max_notional_per_symbol", 500.0)
         risk.setdefault("max_notional_global", 1_500.0)

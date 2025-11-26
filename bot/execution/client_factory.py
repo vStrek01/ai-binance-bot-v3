@@ -9,10 +9,14 @@ from binance.um_futures import UMFutures  # type: ignore[import-untyped]
 
 from bot.core.config import BotConfig, RuntimeConfig
 from bot.core.secrets import SecretNotConfiguredError, get_binance_api_key, get_binance_api_secret
-from bot.execution.exchange_client import ExchangeClient
+from bot.execution.exchange_client import ExchangeClient, ExchangeRequestError
 from bot.utils.logger import get_logger
+from infra.logging import log_event
 
 logger = get_logger(__name__)
+
+_PRE_FLIGHT_WARN_THRESHOLD = 0.5
+_PRE_FLIGHT_ABORT_THRESHOLD = 1.0
 
 
 @dataclass(slots=True)
@@ -40,7 +44,32 @@ def build_data_client(cfg: BotConfig) -> ExchangeClient:
 def build_trading_client(cfg: BotConfig) -> ExchangeClient:
     """Return an ExchangeClient authorized for order placement."""
     profile = _determine_trading_profile(cfg)
-    return ExchangeClient(_build_um_client(profile), mode=profile.label)
+    wrapper = ExchangeClient(_build_um_client(profile), mode=profile.label)
+    _verify_time_sync(wrapper)
+    return wrapper
+
+
+def _verify_time_sync(
+    client: ExchangeClient,
+    *,
+    warn_threshold: float = _PRE_FLIGHT_WARN_THRESHOLD,
+    abort_threshold: float = _PRE_FLIGHT_ABORT_THRESHOLD,
+) -> None:
+    try:
+        client.check_time_drift(warn_threshold=warn_threshold, abort_threshold=abort_threshold, force=True)
+    except ExchangeRequestError as exc:
+        log_event(
+            "TIME_SYNC_PRECHECK_FAILED",
+            mode=client.mode,
+            warn_threshold=warn_threshold,
+            abort_threshold=abort_threshold,
+            category=exc.category,
+        )
+        if exc.category == "drift":
+            raise RuntimeError(
+                "Clock drift exceeds Binance's tolerance (~1s). Enable automatic time sync/NTP and retry after the OS clock is corrected."
+            ) from exc
+        raise
 
 
 def _determine_trading_profile(cfg: BotConfig) -> ClientProfile:
