@@ -15,7 +15,7 @@ from bot.execution.risk_gate import RiskGate
 from bot.learning import TradeLearningStore
 from bot.live_logging import LiveTradeLogger, OrderAuditLogger
 from bot.execution.runners import MarketContext, MultiSymbolRunnerBase, PaperPosition
-from bot.risk import RiskEngine, volatility_snapshot
+from bot.risk import RiskEngine, TradeEvent, volatility_snapshot
 from bot.signals.strategies import StrategyParameters, StrategySignal
 from bot.status import status_store
 from bot.utils.logger import get_logger
@@ -576,7 +576,9 @@ class LiveTrader(MultiSymbolRunnerBase):
                     stats.record_trade(pnl_val, payload)
                     self._pnl_history.append(pnl_val)
                     trade_epoch = self._timestamp_to_epoch(payload.get("closed_at"))
-                    self._risk_engine.register_trade(pnl_val, equity=self._estimate_equity(), timestamp=trade_epoch)
+                    self._risk_engine.register_trade(
+                        TradeEvent(pnl=pnl_val, equity=self._estimate_equity(), timestamp=trade_epoch, symbol=ctx.symbol)
+                    )
                     if len(self._pnl_history) > 500:
                         self._pnl_history = self._pnl_history[-500:]
                 self._last_trade_ids[ctx.symbol] = self._int_or_default(new_payloads[-1].get("exchange_trade_id"))

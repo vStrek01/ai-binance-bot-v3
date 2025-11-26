@@ -240,6 +240,10 @@ class RLConfig:
     checkpoint_interval: int = 25
     max_steps_per_episode: int = 1_000
     device_preference: str = "auto"
+    validation_episodes: int = 5
+    results_dir_name: str = "rl_runs"
+    policy_dir_name: str = "rl_policies"
+    min_validation_reward: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -305,6 +309,8 @@ def _validate_rl_config(rl: RLConfig) -> None:
         raise ConfigValidationError("max_param_deviation_from_baseline must be within [0, 1]")
     if rl.episodes <= 0 or rl.max_steps_per_episode <= 0:
         raise ConfigValidationError("RL training episodes and steps must be positive")
+    if rl.validation_episodes < 0:
+        raise ConfigValidationError("validation_episodes cannot be negative")
 
 
 def _validate_bot_config(config: BotConfig) -> None:
@@ -397,6 +403,10 @@ def load_config(*, base_dir: Path | None = None) -> BotConfig:
         checkpoint_interval=_env_int("BOT_RL_CHECKPOINT_INTERVAL", rl_default.checkpoint_interval),
         max_steps_per_episode=_env_int("BOT_RL_MAX_STEPS", rl_default.max_steps_per_episode),
         device_preference=_env_str("BOT_RL_DEVICE", rl_default.device_preference),
+        validation_episodes=_env_int("BOT_RL_VALIDATION_EPISODES", rl_default.validation_episodes),
+        results_dir_name=_env_str("BOT_RL_RESULTS_DIR", rl_default.results_dir_name),
+        policy_dir_name=_env_str("BOT_RL_POLICY_DIR", rl_default.policy_dir_name),
+        min_validation_reward=_env_float("BOT_RL_MIN_VAL_REWARD", rl_default.min_validation_reward),
     )
 
     backtest = BacktestConfig()
