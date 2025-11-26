@@ -40,6 +40,44 @@ BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runn
 ```
 Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
+## Typed Config Schema
+
+`infra/config_loader.load_config()` now returns an `AppConfig` instance backed by the Pydantic models in `infra/config_schema.py`. YAML, environment variables, and CLI overrides are merged into a single payload and validated before any trading logic initializes. A typical JSON representation looks like:
+
+```json
+{
+	"run_mode": "dry-run",
+	"risk": {
+		"risk_per_trade_pct": 1.5,
+		"max_daily_drawdown_pct": 6.0,
+		"max_consecutive_losses": 4,
+		"max_notional_per_symbol": 2500.0,
+		"max_notional_global": 10000.0
+	},
+	"exchange": {
+		"use_testnet": true,
+		"api_key": null,
+		"api_secret": null,
+		"base_url": "https://testnet.binancefuture.com"
+	},
+	"strategy": {
+		"ema_fast": 13,
+		"ema_slow": 34,
+		"rsi_length": 14,
+		"rsi_overbought": 70,
+		"rsi_oversold": 30,
+		"atr_length": 14,
+		"atr_multiplier": 1.5
+	},
+	"llm": {
+		"enabled": false,
+		"max_confidence": 0.8
+	}
+}
+```
+
+Percentages must fall within 0–100, counts must be positive integers, and notionals must be greater than zero. When `run_mode` is `live`, exchange API keys are mandatory and `use_testnet` must be `false`. Any violation raises a `ConfigError`, so the process fails fast before orders can be submitted.
+
 ## Dependencies & CI
 - Runtime packages live in `requirements.in`; dev tooling goes into `requirements-dev.in`, which already includes `-r requirements.in` so you only list the extras.
 - After editing either `.in` file, regenerate the lockfiles locally with:

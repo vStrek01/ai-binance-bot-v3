@@ -18,12 +18,13 @@ from pandas.api.types import is_numeric_dtype
 
 from core.engine import TradingEngine
 from core.llm_adapter import LLMAdapter
-from core.models import Candle, RiskConfig
+from core.models import Candle, RiskConfig as EngineRiskConfig
 from core.risk import RiskManager
 from core.safety import SafetyLimits
 from core.state import PositionManager
 from core.strategy import IndicatorConfig, Strategy
-from infra.config_loader import ConfigLoader
+from infra.config_loader import load_config
+from infra.config_schema import AppConfig
 from infra.logging import bind_log_context, setup_logging
 from strategies.baseline_rsi_trend import BaselineConfig, BaselineRSITrend
 
@@ -88,38 +89,51 @@ def _load_candles(path: Path, symbol: str, max_rows: int, start: str | None, end
     return candles
 
 
-def _build_safety_limits(config: dict) -> SafetyLimits:
-    safety_cfg = config.get("safety", {})
+def _build_safety_limits(config: AppConfig) -> SafetyLimits:
+    risk = config.risk
     return SafetyLimits(
-        max_daily_drawdown_pct=float(safety_cfg.get("max_daily_drawdown_pct", 5.0)),
-        max_total_notional_usd=float(safety_cfg.get("max_total_notional_usd", 25_000.0)),
-        max_consecutive_losses=int(safety_cfg.get("max_consecutive_losses", 3)),
+        max_daily_drawdown_pct=risk.max_daily_drawdown_pct,
+        max_total_notional_usd=risk.max_notional_global,
+        max_consecutive_losses=risk.max_consecutive_losses,
     )
 
 
-def _build_risk_manager(config: dict, safety_limits: SafetyLimits) -> RiskManager:
-    risk_cfg = RiskConfig(**config.get("risk", {}))
+def _build_risk_manager(config: AppConfig, safety_limits: SafetyLimits) -> RiskManager:
+    base_risk = EngineRiskConfig()
+    overrides = {
+        "max_risk_per_trade_pct": config.risk.risk_per_trade_pct / 100.0,
+        "max_daily_drawdown_pct": config.risk.max_daily_drawdown_pct / 100.0,
+        "max_symbol_notional_usd": config.risk.max_notional_per_symbol,
+    }
+    risk_cfg = base_risk.model_copy(update=overrides)
     return RiskManager(risk_cfg, safety_limits=safety_limits)
 
 
-def _build_strategy(config: dict, mode: str) -> Strategy:
-    indicator_cfg = IndicatorConfig()
+def _build_strategy(config: AppConfig, mode: str) -> Strategy:
+    strategy_cfg = config.strategy
+    indicator_cfg = IndicatorConfig(
+        fast_ema=strategy_cfg.ema_fast,
+        slow_ema=strategy_cfg.ema_slow,
+        rsi_length=strategy_cfg.rsi_length,
+        rsi_overbought=float(strategy_cfg.rsi_overbought),
+        rsi_oversold=float(strategy_cfg.rsi_oversold),
+        atr_period=strategy_cfg.atr_length,
+        atr_stop=strategy_cfg.atr_multiplier,
+        atr_target=strategy_cfg.atr_multiplier,
+    )
+
     baseline_strategy = None
     llm_adapter = None
     if mode == "baseline":
-        baseline_params = config.get("baseline_strategy", {})
-        defaults = BaselineConfig()
-        baseline_cfg = BaselineConfig(
-            ma_length=int(baseline_params.get("ma_length", defaults.ma_length)),
-            rsi_length=int(baseline_params.get("rsi_length", defaults.rsi_length)),
-            rsi_oversold=float(baseline_params.get("rsi_oversold", defaults.rsi_oversold)),
-            rsi_overbought=float(baseline_params.get("rsi_overbought", defaults.rsi_overbought)),
-            size_usd=float(baseline_params.get("size_usd", defaults.size_usd)),
-            stop_loss_pct=float(baseline_params.get("stop_loss_pct", defaults.stop_loss_pct)),
-            take_profit_pct=float(baseline_params.get("take_profit_pct", defaults.take_profit_pct)),
+        baseline_strategy = BaselineRSITrend(
+            BaselineConfig(
+                ma_length=strategy_cfg.ema_slow,
+                rsi_length=strategy_cfg.rsi_length,
+                rsi_oversold=float(strategy_cfg.rsi_oversold),
+                rsi_overbought=float(strategy_cfg.rsi_overbought),
+            )
         )
-        baseline_strategy = BaselineRSITrend(baseline_cfg)
-    else:
+    elif config.llm.enabled:
         llm_adapter = LLMAdapter()
 
     return Strategy(
@@ -130,7 +144,7 @@ def _build_strategy(config: dict, mode: str) -> Strategy:
     )
 
 
-def _run_backtest(candles: List[Candle], config: dict, mode: str) -> dict:
+def _run_backtest(candles: List[Candle], config: AppConfig, mode: str) -> dict:
     safety_limits = _build_safety_limits(config)
     risk_manager = _build_risk_manager(config, safety_limits)
     position_manager = PositionManager(run_mode="backtest")
@@ -148,8 +162,8 @@ def _run_backtest(candles: List[Candle], config: dict, mode: str) -> dict:
 def main() -> None:
     args = _parse_args()
     setup_logging(state_file="logs/dashboard_state.json")
-    config = ConfigLoader().load(mode_override="backtest")
-    bind_log_context(run_mode="backtest", run_id="eval_llm_vs_baseline")
+    config = load_config(mode_override="backtest")
+    bind_log_context(run_mode=config.run_mode, run_id="eval_llm_vs_baseline")
     candles = _load_candles(Path(args.data_path), args.symbol, args.max_rows, args.start, args.end)
 
     baseline_result = _run_backtest(candles, config, "baseline")

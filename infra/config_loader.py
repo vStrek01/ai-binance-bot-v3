@@ -1,111 +1,122 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import yaml
 from dotenv import load_dotenv
+from pydantic import ValidationError
+
+from infra.config_schema import AppConfig, RunMode
 
 
 class ConfigError(RuntimeError):
     """Raised when configuration or environment validation fails."""
 
 
-class ConfigLoader:
-    def __init__(self, path: str = "config.yaml"):
-        load_dotenv()
-        self.path = path
+def load_config(path: str = "config.yaml", *, mode_override: str | None = None) -> AppConfig:
+    """Load and validate the merged configuration as an AppConfig instance."""
 
-    def load(self, *, mode_override: Optional[str] = None) -> Dict[str, Any]:
-        config = self._read_config_file()
-        config.setdefault("live_trading_enabled", False)
+    load_dotenv()
+    file_config = _read_config_file(path)
+    run_mode = _resolve_run_mode(file_config.get("run_mode"), mode_override)
+    merged = _merge_dicts(file_config, _build_env_overrides(run_mode, file_config.get("exchange")))
+    merged["run_mode"] = run_mode
 
-        run_mode = self._resolve_run_mode(config, mode_override)
-        config["run_mode"] = run_mode
-        config["binance"] = self._build_binance_section(config, run_mode)
-        config["mode_flags"] = {
-            "backtest": run_mode == "backtest",
-            "paper": run_mode == "paper",
-            "live": run_mode == "live",
-        }
+    try:
+        return AppConfig(**merged)
+    except ValidationError as exc:  # pragma: no cover - serialized below
+        raise ConfigError(f"Invalid configuration: {exc}") from exc
 
-        self._apply_defaults(config)
-        return config
 
-    def _read_config_file(self) -> Dict[str, Any]:
-        if not os.path.exists(self.path):
-            return {}
-        with open(self.path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+def _read_config_file(path: str) -> Dict[str, Any]:
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+        if not isinstance(data, dict):
+            raise ConfigError("config.yaml must contain a mapping at the root level")
+        return data
 
-    def _apply_defaults(self, config: Dict[str, Any]) -> None:
-        config.setdefault("symbol", "BTCUSDT")
-        config.setdefault("strategy_mode", "llm")
-        config.setdefault("baseline_strategy", {})
-        config["baseline_strategy"].setdefault("ma_length", 50)
-        config["baseline_strategy"].setdefault("rsi_length", 14)
-        config["baseline_strategy"].setdefault("rsi_oversold", 30)
-        config["baseline_strategy"].setdefault("rsi_overbought", 70)
-        config["baseline_strategy"].setdefault("size_usd", 1_000.0)
-        config["baseline_strategy"].setdefault("stop_loss_pct", 0.01)
-        config["baseline_strategy"].setdefault("take_profit_pct", 0.02)
 
-        config.setdefault("risk", {})
-        config["risk"].setdefault("max_symbol_notional_usd", 5_000.0)
-        config["risk"].setdefault("min_order_notional_usd", 10.0)
+def _merge_dicts(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    result = dict(base)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _merge_dicts(result[key], value)
+        else:
+            result[key] = value
+    return result
 
-        config.setdefault("safety", {})
-        config["safety"].setdefault("max_daily_drawdown_pct", 5.0)
-        config["safety"].setdefault("max_total_notional_usd", 25_000.0)
-        config["safety"].setdefault("max_consecutive_losses", 3)
 
-    def _resolve_run_mode(self, config: Dict[str, Any], override: Optional[str]) -> str:
-        candidate = override or os.getenv("RUN_MODE") or config.get("run_mode") or "backtest"
-        run_mode = candidate.lower().strip()
-        if run_mode not in {"backtest", "paper", "live"}:
-            raise ConfigError(f"Unsupported RUN_MODE '{candidate}'. Choose backtest, paper, or live.")
-        return run_mode
+def _resolve_run_mode(config_value: Any, override: str | None) -> RunMode:
+    candidate = override or os.getenv("RUN_MODE") or config_value or "backtest"
+    if not isinstance(candidate, str):
+        raise ConfigError("RUN_MODE must be a string if provided")
 
-    def _build_binance_section(self, config: Dict[str, Any], run_mode: str) -> Dict[str, Any]:
-        existing = config.get("binance", {})
-        api_key = os.getenv("BINANCE_API_KEY", "").strip()
-        api_secret = os.getenv("BINANCE_API_SECRET", "").strip()
-        default_testnet = run_mode != "live"
-        explicit_testnet = os.getenv("BINANCE_TESTNET")
-        alias_testnet = os.getenv("BOT_USE_TESTNET")
-        raw_testnet_flag = explicit_testnet if explicit_testnet not in {None, ""} else alias_testnet
-        is_testnet = self._parse_testnet_flag(raw_testnet_flag, default_testnet)
+    normalized = candidate.strip().lower()
+    alias_map = {
+        "paper": "dry-run",
+        "paper-trading": "dry-run",
+        "dryrun": "dry-run",
+        "demo": "demo-live",
+        "demo_live": "demo-live",
+        "demolive": "demo-live",
+    }
+    normalized = alias_map.get(normalized, normalized)
 
-        if run_mode in {"paper", "live"}:
-            if not api_key or not api_secret:
-                raise ConfigError("BINANCE_API_KEY and BINANCE_API_SECRET are required for paper/live modes")
+    allowed: tuple[RunMode, ...] = ("backtest", "dry-run", "demo-live", "live")
+    if normalized not in allowed:
+        allowed_text = ", ".join(allowed)
+        raise ConfigError(f"Unsupported RUN_MODE '{candidate}'. Choose one of: {allowed_text}.")
 
-        if run_mode == "paper" and not is_testnet:
-            raise ConfigError("Paper mode requires BINANCE_TESTNET=1 (testnet)")
+    return normalized  # type: ignore[return-value]
 
-        if run_mode == "live":
-            if is_testnet:
-                raise ConfigError("Live mode requires BINANCE_TESTNET=0 (mainnet)")
-            confirmation = os.getenv("CONFIRM_LIVE", "")
-            if confirmation != "YES_I_UNDERSTAND_THE_RISK":
-                raise ConfigError("CONFIRM_LIVE must be set to YES_I_UNDERSTAND_THE_RISK for live trading")
-            if not config.get("live_trading_enabled"):
-                raise ConfigError("Live trading is disabled in config.yaml (set live_trading_enabled: true)")
 
-        section = {**existing}
-        section.update(
-            {
-                "api_key": api_key,
-                "api_secret": api_secret,
-                "testnet": is_testnet,
-            }
-        )
-        return section
+def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, Any]:
+    overrides: Dict[str, Any] = {}
+    exchange_override: Dict[str, Any] = {}
 
-    def _parse_testnet_flag(self, raw: Optional[str], default: bool) -> bool:
-        if raw is None or raw.strip() == "":
-            return default
-        value = raw.strip().lower()
-        if value in {"1", "true", "yes", "on"}:
-            return True
-        if value in {"0", "false", "no", "off"}:
-            return False
-        raise ConfigError("BINANCE_TESTNET must be '1'/'0' or boolean-like text")
+    api_key = _strip_env_var("BINANCE_API_KEY")
+    api_secret = _strip_env_var("BINANCE_API_SECRET")
+    base_url = _strip_env_var("BINANCE_BASE_URL")
+
+    if api_key is not None:
+        exchange_override["api_key"] = api_key
+    if api_secret is not None:
+        exchange_override["api_secret"] = api_secret
+    if base_url is not None:
+        exchange_override["base_url"] = base_url
+
+    explicit_testnet = os.getenv("BINANCE_TESTNET")
+    alias_testnet = os.getenv("BOT_USE_TESTNET")
+    raw_testnet = explicit_testnet if explicit_testnet not in {None, ""} else alias_testnet
+    parsed_testnet = _parse_optional_bool(raw_testnet)
+
+    exchange_has_testnet = isinstance(exchange_section, dict) and "use_testnet" in exchange_section
+    if parsed_testnet is not None:
+        exchange_override["use_testnet"] = parsed_testnet
+    elif not exchange_has_testnet:
+        exchange_override.setdefault("use_testnet", run_mode != "live")
+
+    if exchange_override:
+        overrides["exchange"] = exchange_override
+
+    return overrides
+
+
+def _strip_env_var(name: str) -> str | None:
+    raw = os.getenv(name)
+    if raw is None:
+        return None
+    value = raw.strip()
+    return value or None
+
+
+def _parse_optional_bool(raw: str | None) -> bool | None:
+    if raw is None:
+        return None
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ConfigError("Boolean env vars must be 1/0 or true/false text")
