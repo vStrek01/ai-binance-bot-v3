@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from bot.core.config import BotConfig
 from bot.execution.exchange import SymbolFilters
-from bot.risk.engine import ExposureState, RiskEngine
+from bot.risk.engine import ExposureState, OpenTradeRequest, RiskDecision, RiskEngine
 
 
 @dataclass(slots=True)
@@ -20,13 +19,6 @@ class RiskCheck:
     filters: SymbolFilters | None = None
 
 
-@dataclass(slots=True)
-class RiskDecision:
-    allowed: bool
-    should_flatten: bool
-    reason: Optional[str] = None
-
-
 class RiskGate:
     """Single entry point for live trade approvals."""
 
@@ -39,27 +31,17 @@ class RiskGate:
         return self._engine
 
     def assess_entry(self, check: RiskCheck) -> RiskDecision:
-        allowed, reason = self._engine.can_open_new_trades()
-        flatten = self._engine.should_flatten_positions()
-        if flatten:
-            return RiskDecision(False, True, self._engine.halt_reason or "flatten_required")
-        if not allowed:
-            return RiskDecision(False, False, reason)
-        if check.quantity <= 0 or check.price <= 0:
-            return RiskDecision(False, False, "invalid_order")
-        adjusted, limit_reason = self._engine.adjust_quantity(
+        request = OpenTradeRequest(
             symbol=check.symbol,
-            price=check.price,
+            side=check.side,
             quantity=check.quantity,
+            price=check.price,
             available_balance=check.available_balance,
             equity=check.equity,
-            symbol_exposure=check.exposure.per_symbol.get(check.symbol, 0.0),
-            total_exposure=check.exposure.total,
+            exposure=check.exposure,
             filters=check.filters,
         )
-        if adjusted <= 0:
-            return RiskDecision(False, False, limit_reason or "risk_limit")
-        return RiskDecision(True, False, None)
+        return self._engine.evaluate_open(request)
 
 
 __all__ = ["RiskGate", "RiskDecision", "RiskCheck"]

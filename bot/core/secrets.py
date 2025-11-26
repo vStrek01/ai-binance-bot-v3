@@ -1,13 +1,14 @@
 """Helpers for loading API credentials from environment or optional .env files."""
 from __future__ import annotations
 
-import logging
 import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
-logger = logging.getLogger(__name__)
+from bot.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = BASE_DIR / ".env"
