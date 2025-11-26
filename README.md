@@ -40,6 +40,58 @@ BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runn
 ```
 Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
+## Demo-Live Trading (Binance Futures Testnet)
+
+`demo-live` mode connects directly to the Binance USDS-M Futures testnet (`demo-fapi` REST + `demo-stream` websockets). Orders are placed against your demo balance via the full production stack—risk engine, kill-switch, trade lifecycle, and strategy logic all run exactly as they would in live trading, but there is **zero real-money risk**.
+
+### Demo API keys
+- Visit https://testnet.binancefuture.com (or https://demo.binance.com depending on your region).
+- Create a Futures demo API key/secret pair and enable trading permissions.
+- Store the credentials securely; never reuse live keys in demo mode.
+
+### Required environment variables
+Set the following before launching the bot (replace the placeholder values with your demo credentials):
+
+```bash
+BINANCE_API_KEY="dXKBFVDv8uK1YSdzn75BxXRzL6fDJHYtcRGyrCwS8r7K9EAwHCP18ezrKc9lKVxw"
+BINANCE_API_SECRET="NuIJw6tYF1XSxbmkoAgdQOjNrXS2CPEcqoRl7yUqJOJQI9OxXcBmODV6jNW9Pcxu"
+RUN_MODE=demo-live
+```
+
+- Do **not** set the live-trading confirmation env vars (`BOT_CONFIRM_LIVE`, etc.) while in demo-live.
+- `use_testnet` must remain `true`; the config loader enforces safe defaults for all demo REST/WS URLs when `RUN_MODE=demo-live`.
+
+### Example `config.yaml`
+
+```yaml
+run_mode: demo-live
+
+exchange:
+	use_testnet: true
+	rest_base_url: "https://demo-fapi.binance.com"
+	ws_market_url: "wss://demo-stream.binancefuture.com/stream"
+	ws_user_url: "wss://demo-stream.binancefuture.com/ws"
+```
+
+You can override strategy, risk, or other sections as needed; leaving the URLs unset lets the loader inject the same safe defaults shown above.
+
+### Starting the bot
+
+```powershell
+cd C:/Users/Anwender/Desktop/ai-binance-bot-v3
+& ./.venv/Scripts/Activate.ps1
+
+python -m bot.runner `
+	--run-mode demo-live `
+	--symbol BTCUSDT `
+	--interval 1m
+```
+
+Expect log lines advertising `run_mode=demo-live`, websocket/REST connections targeting the Binance Futures testnet, order placement against your demo balance, kill-switch/risk limit enforcement, and equity snapshots updating throughout the session.
+
+> **WARNING**
+> `demo-live` is not real live trading—funds are virtual, and switching to true live mode requires explicit confirmations plus a different configuration. Double-check your run mode and API keys before moving to production.
+
 ## Typed Config Schema
 
 `infra/config_loader.load_config()` now returns an `AppConfig` instance backed by the Pydantic models in `infra/config_schema.py`. YAML, environment variables, and CLI overrides are merged into a single payload and validated before any trading logic initializes. A typical JSON representation looks like:
