@@ -23,7 +23,7 @@ from bot.rl.agents import ActorCriticAgent
 from bot.rl.env import FuturesTradingEnv
 from bot.rl.policy_store import RLPolicyStore, _policy_name
 from bot.rl.trainer import RLTrainer
-from bot.rl.types import compute_baseline_hash
+from bot.rl.types import compute_baseline_hash, compute_param_deviation
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
 from bot.utils.logger import RunContext, generate_run_id, get_logger, setup_logging
@@ -86,6 +86,35 @@ def _policy_guardrails(
         return False, "missing_validation_metrics"
     if val_mean < cfg.rl.min_validation_reward:
         return False, "val_reward_below_threshold"
+    return True, ""
+
+
+def _rl_guardrails_allow(params: Dict[str, float], cfg: BotConfig | None = None) -> tuple[bool, str]:
+    """Validate RL-generated parameters against deviation limits."""
+
+    cfg = cfg or load_config()
+    baseline = {key: float(value) for key, value in cfg.strategy.default_parameters.items()}
+    worst_key: str | None = None
+    worst_deviation = 0.0
+    for key, base_value in baseline.items():
+        if key not in params:
+            continue
+        try:
+            base = float(base_value)
+            candidate = float(params[key])
+        except (TypeError, ValueError):
+            continue
+        denominator = abs(base) if abs(base) > 1e-9 else 1.0
+        deviation = abs(candidate - base) / denominator
+        if deviation > worst_deviation:
+            worst_deviation = deviation
+            worst_key = key
+    if worst_deviation > cfg.rl.max_param_deviation_from_baseline:
+        offending = worst_key or "unknown_param"
+        return False, f"{offending}_deviation_{worst_deviation:.3f}"
+    aggregate_deviation = compute_param_deviation(baseline, params)
+    if aggregate_deviation > cfg.rl.max_param_deviation_from_baseline:
+        return False, f"aggregate_deviation_{aggregate_deviation:.3f}"
     return True, ""
 
 
@@ -642,7 +671,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     setup_logging(cfg, run_context=RunContext(run_id=run_id, run_type=run_type))
     status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
     status_store.set_run_context(run_id, run_type)
-    logger.info("Run initialized", extra={"run_type": run_type, "run_id": run_id})
+    logger.info("Run initialized")
     func(cfg, args)
 
 

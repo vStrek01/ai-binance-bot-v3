@@ -142,7 +142,6 @@ class RLTrainer:
                         "episodes": episodes,
                         "reward": episode_reward,
                         "avg_reward": _mean(rewards),
-                        "run_id": run_id,
                     },
                 )
         val_rewards: List[float] = []
@@ -180,7 +179,6 @@ class RLTrainer:
         logger.info(
             "rl_training_complete",
             extra={
-                "run_id": run_id,
                 "episodes": episodes,
                 "train_reward_mean": run_metadata.train_reward_mean,
                 "val_reward_mean": run_metadata.val_reward_mean,
