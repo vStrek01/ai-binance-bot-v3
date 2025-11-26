@@ -2,16 +2,18 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from bot.utils.fileio import FileLock, atomic_write_text
+import logging
 
-logger = logging.getLogger(__name__)
+from bot.utils.fileio import FileLock, atomic_write_text
+from bot.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def _default_log_dir() -> Path:
@@ -74,6 +76,8 @@ class StatusStore:
         starting_balance = self._default_balance
         return {
             "mode": "idle",
+            "run_id": None,
+            "run_type": None,
             "symbol": None,
             "timeframe": None,
             "balance": starting_balance,
@@ -160,7 +164,16 @@ class StatusStore:
             if not isinstance(progress, dict):
                 progress = {"completed": 0, "total": 0}
             payload["progress"] = dict(progress)
+            payload["run_id"] = self._state.get("run_id")
+            payload["run_type"] = self._state.get("run_type")
             return payload
+
+    def set_run_context(self, run_id: str, run_type: Optional[str] = None) -> None:
+        with self._lock:
+            self._state["run_id"] = run_id
+            self._state["run_type"] = run_type or self._state.get("run_type") or "general"
+            self._touch()
+            self._persist_locked()
 
     def set_mode(self, mode: str, symbol: Optional[str] = None, timeframe: Optional[str] = None) -> None:
         with self._lock:

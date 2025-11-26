@@ -51,6 +51,14 @@ class ActorCriticAgent:
         self.entropies.append(entropy)
         return int(action.item())
 
+    def select_action_eval(self, state_vector) -> int:
+        with torch.no_grad():
+            state = torch.tensor(state_vector, dtype=torch.float32, device=self.device).unsqueeze(0)
+            logits = self.policy(state)
+            dist = torch.distributions.Categorical(logits=logits)
+            action = dist.sample()
+            return int(action.item())
+
     def record_reward(self, reward: float) -> None:
         self.rewards.append(torch.tensor([reward], dtype=torch.float32, device=self.device))
 
