@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import statistics
-from dataclasses import replace
 from typing import Any, Dict, Iterable, List
 
 from bot.core.config import BotConfig, ensure_directories
@@ -55,8 +54,10 @@ class HyperparameterOptimizer:
         return best_results
 
     def _with_space(self, space: Dict[str, List[float]]) -> BotConfig:
-        strategy = replace(self._config.strategy, parameter_space={key: list(values) for key, values in space.items()})
-        return replace(self._config, strategy=strategy)
+        strategy = self._config.strategy.model_copy(
+            update={"parameter_space": {key: list(values) for key, values in space.items()}}
+        )
+        return self._config.model_copy(update={"strategy": strategy})
 
     def _refine_space(self, winners: List[Dict[str, Any]]) -> Dict[str, List[float]]:
         refined: Dict[str, List[float]] = {}

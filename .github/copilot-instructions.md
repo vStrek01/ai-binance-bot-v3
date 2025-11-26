@@ -12,7 +12,7 @@
 
 - [x] Create and Run Task (Not needed for this workflow.)
 
-- [ ] Launch the Project (Awaiting explicit user request.)
+- [x] Launch the Project (Executed sample backtest via bot.runner.)
 
 - [x] Ensure Documentation is Complete
 

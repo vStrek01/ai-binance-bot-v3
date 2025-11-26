@@ -79,18 +79,19 @@ class Strategy:
         if llm_signal is None:
             return indicator_signal
 
+        # Baseline chooses direction; LLM can only modulate conviction.
         if indicator_signal.action == Side.FLAT:
-            return llm_signal
+            return indicator_signal
 
         if llm_signal.action == Side.FLAT:
             return indicator_signal
 
         if indicator_signal.action == llm_signal.action:
-            avg_conf = (indicator_signal.confidence + llm_signal.confidence) / 2
-            return Signal(action=indicator_signal.action, confidence=avg_conf, reason="agreement")
+            boost = min(1.0, indicator_signal.confidence + llm_signal.confidence * 0.25)
+            return Signal(action=indicator_signal.action, confidence=boost, reason="agreement")
 
-        # disagreement -> reduce conviction
-        return Signal(action=Side.FLAT, confidence=0.0, reason="disagreement")
+        # Hard disagreement -> stand down entirely.
+        return Signal(action=Side.FLAT, confidence=0.0, reason="llm_conflict")
 
     def evaluate(self, market_state: MarketState) -> Signal:
         if self.strategy_mode == "baseline" and self.baseline_strategy:

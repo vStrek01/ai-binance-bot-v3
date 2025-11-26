@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional, Tuple
 
@@ -367,8 +367,8 @@ class RiskEngine:
                 clamps["max_daily_loss_pct"] = max_daily_loss_pct_cap
         if clamps:
             logger.warning("Risk config clamped for safety: %s", clamps)
-            risk = replace(risk, **clamps)
-        return replace(cfg, risk=risk)
+            risk = risk.model_copy(update=clamps)
+        return cfg.model_copy(update={"risk": risk})
 
     def adjust_quantity(
         self,

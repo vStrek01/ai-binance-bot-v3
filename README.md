@@ -40,6 +40,63 @@ BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runn
 ```
 Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
+## Disclaimer / Risk Warning
+
+- This repository is **not** financial advice—use it for research and education only.
+- Trading derivatives is risky and you can lose more than your principal; never trade money you cannot afford to lose.
+- You run the code at your own risk; review every configuration change and deploy cautiously.
+- Always test on demo/testnet accounts before touching real funds.
+- Mainnet live mode remains gated behind confirmations and should only be used by operators who fully understand the stack.
+
+## Common Workflows
+
+### Run a baseline backtest
+- Env vars: none required.
+- Commands:
+
+```powershell
+cd C:/Users/Anwender/Desktop/ai-binance-bot-v3
+& ./.venv/Scripts/Activate.ps1
+
+python -m bot.runner backtest --symbol BTCUSDT --interval 1m
+```
+
+### Run dry-run / paper mode
+- Env vars: `RUN_MODE=dry-run` (or pass `--run-mode dry-run`).
+- Commands:
+
+```powershell
+cd C:/Users/Anwender/Desktop/ai-binance-bot-v3
+& ./.venv/Scripts/Activate.ps1
+
+python -m bot.runner dry-run --symbol BTCUSDT --interval 1m
+```
+
+### Run demo-live on Binance Futures testnet
+- Env vars: `RUN_MODE=demo-live`, Binance demo API key/secret, **do not** set live confirmations.
+- Commands:
+
+```powershell
+cd C:/Users/Anwender/Desktop/ai-binance-bot-v3
+& ./.venv/Scripts/Activate.ps1
+
+python -m bot.runner `
+	--run-mode demo-live `
+	--symbol BTCUSDT `
+	--interval 1m
+```
+
+### (Optional) Run optimizer
+- Env vars: set any optimizer-specific toggles (for example `RUN_MODE=backtest`).
+- Commands:
+
+```powershell
+cd C:/Users/Anwender/Desktop/ai-binance-bot-v3
+& ./.venv/Scripts/Activate.ps1
+
+python -m bot.runner optimize --symbol BTCUSDT --interval 1m
+```
+
 ## Demo-Live Trading (Binance Futures Testnet)
 
 `demo-live` mode connects directly to the Binance USDS-M Futures testnet (`demo-fapi` REST + `demo-stream` websockets). Orders are placed against your demo balance via the full production stack—risk engine, kill-switch, trade lifecycle, and strategy logic all run exactly as they would in live trading, but there is **zero real-money risk**.
@@ -53,8 +110,8 @@ Live trading against production endpoints still requires entering real API keys 
 Set the following before launching the bot (replace the placeholder values with your demo credentials):
 
 ```bash
-BINANCE_API_KEY="dXKBFVDv8uK1YSdzn75BxXRzL6fDJHYtcRGyrCwS8r7K9EAwHCP18ezrKc9lKVxw"
-BINANCE_API_SECRET="NuIJw6tYF1XSxbmkoAgdQOjNrXS2CPEcqoRl7yUqJOJQI9OxXcBmODV6jNW9Pcxu"
+BINANCE_API_KEY="<YOUR_DEMO_API_KEY>"
+BINANCE_API_SECRET="<YOUR_DEMO_API_SECRET>"
 RUN_MODE=demo-live
 ```
 
@@ -67,10 +124,10 @@ RUN_MODE=demo-live
 run_mode: demo-live
 
 exchange:
-	use_testnet: true
-	rest_base_url: "https://demo-fapi.binance.com"
-	ws_market_url: "wss://demo-stream.binancefuture.com/stream"
-	ws_user_url: "wss://demo-stream.binancefuture.com/ws"
+  use_testnet: true
+  rest_base_url: "https://demo-fapi.binance.com"
+  ws_market_url: "wss://demo-stream.binancefuture.com/stream"
+  ws_user_url: "wss://demo-stream.binancefuture.com/ws"
 ```
 
 You can override strategy, risk, or other sections as needed; leaving the URLs unset lets the loader inject the same safe defaults shown above.

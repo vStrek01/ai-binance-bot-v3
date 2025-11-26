@@ -1,11 +1,12 @@
 import os
+from pathlib import Path
 from typing import Any, Dict
 
 import yaml
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
-from infra.config_schema import AppConfig, RunMode
+from infra.config_schema import AppConfig, PathsConfig, RunMode
 
 DEMO_REST_BASE_URL = "https://demo-fapi.binance.com"
 DEMO_WS_MARKET_URL = "wss://fstream.binancefuture.com"
@@ -19,7 +20,12 @@ class ConfigError(RuntimeError):
     """Raised when configuration or environment validation fails."""
 
 
-def load_config(path: str = "config.yaml", *, mode_override: str | None = None) -> AppConfig:
+def load_config(
+    path: str = "config.yaml",
+    *,
+    base_dir: Path | None = None,
+    mode_override: str | None = None,
+) -> AppConfig:
     """Load and validate the merged configuration as an AppConfig instance."""
 
     load_dotenv()
@@ -28,6 +34,7 @@ def load_config(path: str = "config.yaml", *, mode_override: str | None = None) 
     merged = _merge_dicts(file_config, _build_env_overrides(run_mode, file_config.get("exchange")))
     _apply_mode_defaults(merged, run_mode)
     merged["run_mode"] = run_mode
+    merged["paths"] = _build_paths(base_dir).model_dump()
 
     try:
         return AppConfig(**merged)
@@ -56,6 +63,8 @@ def _merge_dicts(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, An
 
 
 def _resolve_run_mode(config_value: Any, override: str | None) -> RunMode:
+    """Resolve run_mode with CLI > env > YAML precedence."""
+
     candidate = override or os.getenv("RUN_MODE") or config_value or "backtest"
     if not isinstance(candidate, str):
         raise ConfigError("RUN_MODE must be a string if provided")
@@ -82,6 +91,7 @@ def _resolve_run_mode(config_value: Any, override: str | None) -> RunMode:
 def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, Any]:
     overrides: Dict[str, Any] = {}
     exchange_override: Dict[str, Any] = {}
+    runtime_override: Dict[str, Any] = {}
 
     api_key = _strip_env_var("BINANCE_API_KEY")
     api_secret = _strip_env_var("BINANCE_API_SECRET")
@@ -111,6 +121,23 @@ def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, 
     elif not exchange_has_testnet:
         exchange_override.setdefault("use_testnet", run_mode != "live")
 
+    raw_dry_run = _strip_env_var("BOT_DRY_RUN")
+    raw_live_trading = _strip_env_var("BOT_LIVE_TRADING")
+    raw_use_testnet = _strip_env_var("BOT_USE_TESTNET")
+
+    if raw_dry_run is not None:
+        runtime_override["dry_run"] = _parse_optional_bool(raw_dry_run)
+    if raw_live_trading is not None:
+        runtime_override["live_trading"] = _parse_optional_bool(raw_live_trading)
+    if raw_use_testnet is not None:
+        runtime_override["use_testnet"] = _parse_optional_bool(raw_use_testnet)
+
+    if runtime_override:
+        # Clean None entries if parse_optional_bool returned None
+        runtime_override = {k: v for k, v in runtime_override.items() if v is not None}
+        if runtime_override:
+            overrides.setdefault("runtime", {}).update(runtime_override)
+
     if exchange_override:
         overrides["exchange"] = exchange_override
 
@@ -130,10 +157,6 @@ def _apply_mode_defaults(config: Dict[str, Any], run_mode: RunMode) -> None:
         exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)
         exchange.setdefault("ws_user_url", MAINNET_WS_USER_URL)
 
-    if run_mode == "live":
-        exchange.setdefault("rest_base_url", MAINNET_REST_BASE_URL)
-        exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)
-
 
 def _strip_env_var(name: str) -> str | None:
     raw = os.getenv(name)
@@ -152,3 +175,22 @@ def _parse_optional_bool(raw: str | None) -> bool | None:
     if value in {"0", "false", "no", "off"}:
         return False
     raise ConfigError("Boolean env vars must be 1/0 or true/false text")
+
+
+def _build_paths(base_dir: Path | None) -> PathsConfig:
+    candidate = base_dir or _env_path("BOT_BASE_DIR") or Path(__file__).resolve().parents[1]
+    candidate = candidate.resolve()
+    return PathsConfig(
+        base_dir=candidate,
+        data_dir=candidate / "data",
+        results_dir=candidate / "results",
+        optimization_dir=candidate / "optimization_results",
+        log_dir=candidate / "logs",
+    )
+
+
+def _env_path(name: str) -> Path | None:
+    raw = _strip_env_var(name)
+    if raw is None:
+        return None
+    return Path(raw)

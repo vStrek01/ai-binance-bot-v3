@@ -18,6 +18,13 @@ class OrderRouter:
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
     async def execute(self, order: OrderRequest) -> Optional[OrderFill]:
+        try:
+            self.client.check_time_drift()
+        except RuntimeError as exc:
+            log_event("TIME_DRIFT_ABORTED_ORDER", symbol=order.symbol, error=str(exc))
+            logger.error("Aborting order due to clock drift", extra={"error": str(exc)})
+            return None
+
         params = {
             "symbol": order.symbol,
             "side": "BUY" if order.side == Side.LONG else "SELL",

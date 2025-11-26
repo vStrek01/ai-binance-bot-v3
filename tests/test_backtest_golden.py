@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import List
 
@@ -178,7 +177,7 @@ def test_realism_profiles_are_monotonic(tmp_path) -> None:
     symbol = TEST_SYMBOL
 
     def with_level(level: str):
-        return replace(cfg, backtest=replace(cfg.backtest, realism_level=level))
+        return cfg.model_copy(update={"backtest": cfg.backtest.model_copy(update={"realism_level": level})})
 
     pnl_toy = _run_backtester(with_level("toy"), frame, params, symbol)
     pnl_standard = _run_backtester(with_level("standard"), frame, params, symbol)
