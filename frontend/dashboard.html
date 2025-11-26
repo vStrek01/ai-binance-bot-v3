@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Binance Bot Dashboard</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #0b0f19;
+        color: #e0e6ff;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      h1,
+      h2 {
+        margin: 0 0 12px;
+      }
+      .grid {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      section {
+        background: #151b2d;
+        border: 1px solid #1f2947;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 6px 4px;
+        text-align: left;
+        border-bottom: 1px solid #202a44;
+      }
+      th {
+        font-weight: 600;
+        color: #9fb4ff;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      .metrics {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .metric-card {
+        flex: 1 1 120px;
+        padding: 12px;
+        border: 1px solid #202a44;
+        border-radius: 8px;
+        background: #0f1422;
+      }
+      .metric-card span {
+        display: block;
+        font-size: 12px;
+        color: #9fb4ff;
+      }
+      .metric-card strong {
+        display: block;
+        font-size: 20px;
+        margin-top: 4px;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-size: 14px;
+      }
+      li + li {
+        margin-top: 6px;
+        border-top: 1px solid #1b2338;
+        padding-top: 6px;
+      }
+      .status {
+        color: #9fb4ff;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .error {
+        color: #ff8a7a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AI Binance Bot Dashboard</h1>
+    <p class="status" id="updatedAt">Waiting for telemetry...</p>
+    <div class="grid">
+      <section>
+        <h2>Equity Snapshot</h2>
+        <div class="metrics">
+          <div class="metric-card">
+            <span>Equity</span>
+            <strong id="equityValue">0</strong>
+          </div>
+          <div class="metric-card">
+            <span>Balance</span>
+            <strong id="balanceValue">0</strong>
+          </div>
+          <div class="metric-card">
+            <span>Unrealized PnL</span>
+            <strong id="unrealizedValue">0</strong>
+          </div>
+          <div class="metric-card">
+            <span>Open Positions</span>
+            <strong id="openPositionsValue">0</strong>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2>Recent Events</h2>
+        <ul id="eventsList">
+          <li>Waiting for data...</li>
+        </ul>
+      </section>
+    </div>
+    <section style="margin-top: 24px;">
+      <h2>Open Positions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Quantity</th>
+            <th>Entry</th>
+            <th>Stop</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody id="positionsBody">
+          <tr>
+            <td colspan="6">No open positions</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

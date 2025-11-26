@@ -6,7 +6,7 @@ from typing import Optional
 
 from core.models import OrderFill, OrderRequest, OrderType, Side
 from exchange.binance_client import BinanceClient
-from infra.logging import logger
+from infra.logging import logger, log_event
 
 
 class OrderRouter:
@@ -33,10 +33,22 @@ class OrderRouter:
             params["reduceOnly"] = True
 
         try:
+            est_price = order.price or params.get("price")
+            size_usd = abs(order.quantity * est_price) if est_price else None
+            log_event(
+                "ORDER_PLACED",
+                symbol=order.symbol,
+                side=order.side.value,
+                qty=order.quantity,
+                size_usd=size_usd,
+                entry_price=est_price,
+                leverage=order.leverage,
+            )
             response = self.client.place_order(params)
             logger.info("Order placed", extra={"response": response})
         except Exception as exc:  # pragma: no cover - network
             logger.error("Order placement failed", extra={"error": str(exc)})
+            log_event("ORDER_FAILED", symbol=order.symbol, error=str(exc))
             return None
 
         fill_price = float(response.get("avgPrice") or response.get("price") or params.get("price", 0))
@@ -49,6 +61,15 @@ class OrderRouter:
             avg_price=fill_price,
             timestamp=datetime_from_ms(response.get("updateTime") or response.get("transactTime")),
             client_order_id=params["newClientOrderId"],
+        )
+        log_event(
+            "ORDER_FILLED",
+            symbol=order.symbol,
+            side=order.side.value,
+            fill_price=fill.avg_price,
+            qty=fill.filled_qty,
+            status=fill.status,
+            client_order_id=fill.client_order_id,
         )
 
         # create protection orders

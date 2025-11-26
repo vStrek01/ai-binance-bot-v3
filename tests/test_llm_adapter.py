@@ -5,7 +5,7 @@ from core.models import Side
 
 
 def test_valid_llm_output():
-    adapter = LLMAdapter(llm_client=lambda prompt: json.dumps({"action": "LONG", "confidence": 0.8, "reason": "trend"}))
+    adapter = LLMAdapter(llm_client=lambda prompt: json.dumps({"action": "LONG", "confidence": 80, "reason": "trend"}))
     signal = adapter.infer({"x": 1})
     assert signal.action == Side.LONG
     assert signal.confidence == 0.8

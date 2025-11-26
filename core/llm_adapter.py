@@ -3,23 +3,9 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, ValidationError, field_validator
-
+from ai.decision_schema import LlmDecision, parse_llm_response
 from core.models import LLMSignal, Side
-from infra.logging import logger
-
-
-class LLMResponse(BaseModel):
-    action: Side
-    confidence: float
-    reason: str
-
-    @field_validator("confidence")
-    @classmethod
-    def _bound_confidence(cls, v: float) -> float:
-        if not 0 <= v <= 1:
-            raise ValueError("confidence must be between 0 and 1")
-        return v
+from infra.logging import logger, log_event
 
 
 class LLMAdapter:
@@ -37,14 +23,12 @@ class LLMAdapter:
         market_context = json.dumps(context, default=str)
         return f"{self.prompt_header}\nContext: {market_context}\nJSON:"
 
-    def parse_output(self, content: str) -> LLMSignal:
-        try:
-            parsed = json.loads(content)
-            response = LLMResponse(**parsed)
-            return LLMSignal(action=response.action, confidence=response.confidence, reason=response.reason)
-        except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as exc:
-            logger.warning("LLM output invalid", extra={"error": str(exc), "content": content})
+    def parse_output(self, content: str, *, meta: Optional[Dict[str, Any]] = None) -> LLMSignal:
+        decision = parse_llm_response(content)
+        if decision is None:
+            self._log_invalid_output(content, meta)
             return LLMSignal(action=Side.FLAT, confidence=0.0, reason="invalid output")
+        return self._decision_to_signal(decision)
 
     def infer(self, context: Dict[str, Any]) -> LLMSignal:
         if self.llm_client is None:
@@ -57,4 +41,20 @@ class LLMAdapter:
             logger.exception("LLM call failed", extra={"error": str(exc)})
             return LLMSignal(action=Side.FLAT, confidence=0.0, reason="LLM call failed")
 
-        return self.parse_output(raw)
+        return self.parse_output(raw, meta=context)
+
+    def _decision_to_signal(self, decision: LlmDecision) -> LLMSignal:
+        confidence = float(decision.confidence) / 100.0
+        return LLMSignal(action=Side(decision.action), confidence=confidence, reason=decision.reason)
+
+    def _log_invalid_output(self, raw: Optional[str], meta: Optional[Dict[str, Any]] = None) -> None:
+        snippet = (raw or "")[:200]
+        details = {
+            "truncated_raw": snippet,
+        }
+        if meta:
+            for field in ("symbol", "interval", "run_mode"):
+                if meta.get(field) is not None:
+                    details[field] = meta[field]
+        logger.warning("LLM_INVALID_OUTPUT", extra={"event": "LLM_INVALID_OUTPUT", "snippet": snippet})
+        log_event("LLM_INVALID_OUTPUT", **details)

@@ -44,3 +44,11 @@ def exposure(open_bars: List[int], total_bars: int) -> float:
     if total_bars == 0:
         return 0.0
     return sum(open_bars) / total_bars
+
+
+def average_win_loss(pnls: List[float]) -> tuple[float, float]:
+    wins = [p for p in pnls if p > 0]
+    losses = [-p for p in pnls if p < 0]
+    avg_win = float(np.mean(wins)) if wins else 0.0
+    avg_loss = float(np.mean(losses)) if losses else 0.0
+    return avg_win, avg_loss

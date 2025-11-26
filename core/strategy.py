@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,9 @@ import pandas as pd
 from core.llm_adapter import LLMAdapter
 from core.models import Candle, LLMSignal, MarketState, Signal, Side
 from infra.logging import logger
+
+if TYPE_CHECKING:
+    from strategies.baseline_rsi_trend import BaselineRSITrend, BaselineDecision
 
 
 @dataclass
@@ -35,11 +38,15 @@ class Strategy:
         indicator_config: IndicatorConfig,
         llm_adapter: Optional[LLMAdapter] = None,
         optimized_params: Optional[Dict[str, Any]] = None,
+        strategy_mode: Literal["llm", "baseline"] = "llm",
+        baseline_strategy: Optional["BaselineRSITrend"] = None,
     ):
         self._base_config = indicator_config
         self.llm_adapter = llm_adapter
         self.optimized_params = optimized_params or {}
         self.config = self._merge_config(self._base_config, self.optimized_params)
+        self.strategy_mode = strategy_mode
+        self.baseline_strategy = baseline_strategy
 
     def _merge_config(self, config: IndicatorConfig, overrides: Dict[str, Any]) -> IndicatorConfig:
         if not overrides:
@@ -86,6 +93,9 @@ class Strategy:
         return Signal(action=Side.FLAT, confidence=0.0, reason="disagreement")
 
     def evaluate(self, market_state: MarketState) -> Signal:
+        if self.strategy_mode == "baseline" and self.baseline_strategy:
+            return self._run_baseline(market_state)
+
         indicator_signal = self._compute_ma_signal(market_state.candles)
         llm_signal = None
         if self.llm_adapter:
@@ -101,3 +111,19 @@ class Strategy:
             logger.info("Signal confidence too low", extra={"signal": fused.model_dump()})
             return Signal(action=Side.FLAT, confidence=0.0, reason="low confidence")
         return fused
+
+    def _run_baseline(self, market_state: MarketState) -> Signal:
+        decision = self.baseline_strategy.evaluate(market_state.candles) if self.baseline_strategy else None
+        if decision is None:
+            return Signal(action=Side.FLAT, confidence=0.0, reason="baseline_unavailable")
+
+        action = Side(decision.action)
+        confidence = 1.0 if action != Side.FLAT else 0.0
+        return Signal(
+            action=action,
+            confidence=confidence,
+            reason="baseline_decision",
+            stop_loss_pct=decision.sl_pct,
+            take_profit_pct=decision.tp_pct,
+            size_usd=decision.size_usd,
+        )

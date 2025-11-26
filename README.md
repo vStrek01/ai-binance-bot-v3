@@ -26,14 +26,19 @@ pip install -r requirements.txt
 
 Run a sample backtest (synthetic candles):
 ```bash
-python main.py --backtest
+python main.py --mode backtest
 ```
 
-Run live on Binance (testnet by default):
+Run paper or live on Binance (testnet by default):
 ```bash
-BINANCE_API_KEY=... BINANCE_API_SECRET=... python main.py --live
+# Paper
+RUN_MODE=paper BINANCE_API_KEY=... BINANCE_API_SECRET=... python main.py --mode paper
+
+# Live (requires explicit confirms + live_trading_enabled: true)
+RUN_MODE=live BINANCE_API_KEY=... BINANCE_API_SECRET=... BINANCE_TESTNET=0 \
+	CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python main.py --mode live
 ```
-Live trading requires `live_trading_enabled: true` in `config.yaml`; otherwise the process exits. Set `testnet: false` only when you are certain you want mainnet traffic.
+Live trading requires `live_trading_enabled: true` in `config.yaml`; otherwise the process exits. Never disable `BINANCE_TESTNET` unless you fully understand the risk.
 
 ## Testing
 ```bash
@@ -41,3 +46,8 @@ pytest
 ```
 
 Backtest results are persisted under `data/results/` with equity curves and metrics for later inspection.
+
+## Observability
+
+- `infra/logging.py` exposes `setup_logging()` and `log_event()` so every subsystem emits JSON log lines. Events now cover order lifecycle, position opens/closes, equity snapshots, kill-switch triggers, LLM parse issues, and backtest summaries. Logs stream to stdout by default and (when run via `main.py`) also mirror to `logs/bot.log` plus `logs/dashboard_state.json` for lightweight telemetry.
+- `frontend/dashboard.html` + `dashboard.js` render a minimal dashboard that polls `logs/dashboard_state.json` for the latest equity snapshot, open positions, and recent events. Serve `frontend/` via any static host (e.g. `python -m http.server 9000`) or open the HTML file directly when running locally.

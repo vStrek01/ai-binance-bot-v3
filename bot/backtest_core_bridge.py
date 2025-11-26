@@ -14,6 +14,7 @@ from core.models import Candle, RiskConfig
 from core.risk import RiskManager
 from core.state import PositionManager
 from core.strategy import IndicatorConfig, Strategy
+from core.safety import SafetyLimits
 from infra.logging import logger
 from infra.persistence import save_backtest_results
 
@@ -81,6 +82,18 @@ def _build_strategy(params: StrategyParameters, params_dict: Optional[Dict[str, 
     return Strategy(indicator_cfg, llm_adapter=None, optimized_params=payload)
 
 
+def _build_safety_limits(cfg: BotConfig) -> SafetyLimits:
+    max_daily_pct = float((cfg.risk.max_daily_loss_pct or 0.04) * 100)
+    leverage = max(cfg.risk.leverage, 1.0)
+    exposure_cap = max(cfg.risk.max_account_exposure, 0.01)
+    total_notional = cfg.backtest.initial_balance * leverage * exposure_cap
+    return SafetyLimits(
+        max_daily_drawdown_pct=max(max_daily_pct, 1.0),
+        max_total_notional_usd=max(total_notional, cfg.backtest.initial_balance),
+        max_consecutive_losses=max(cfg.risk.max_concurrent_symbols, 1),
+    )
+
+
 def run_core_backtest(
     cfg: BotConfig,
     symbol: str,
@@ -96,9 +109,16 @@ def run_core_backtest(
 
     candles = _frame_to_candles(dataset, symbol)
     strategy = _build_strategy(params, params_dict)
-    risk_manager = RiskManager(_build_risk_config(cfg))
-    position_manager = PositionManager(equity=cfg.backtest.initial_balance)
-    engine = TradingEngine(strategy, risk_manager, position_manager)
+    safety_limits = _build_safety_limits(cfg)
+    risk_manager = RiskManager(_build_risk_config(cfg), safety_limits=safety_limits)
+    position_manager = PositionManager(equity=cfg.backtest.initial_balance, run_mode="backtest")
+    engine = TradingEngine(
+        strategy,
+        risk_manager,
+        position_manager,
+        safety_limits=safety_limits,
+        run_mode="backtest",
+    )
 
     params_payload = params_dict or asdict(params)
     logger.info(

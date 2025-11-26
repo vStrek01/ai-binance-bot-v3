@@ -72,6 +72,9 @@ class Signal(BaseModel):
     action: Side
     confidence: float = 0.0
     reason: str = ""
+    stop_loss_pct: Optional[float] = None
+    take_profit_pct: Optional[float] = None
+    size_usd: Optional[float] = None
 
     @field_validator("confidence")
     @classmethod
@@ -99,6 +102,8 @@ class RiskConfig(BaseModel):
     taker_fee_rate: float = 0.0006
     maker_fee_rate: float = 0.0002
     slippage: float = 0.0005
+    max_symbol_notional_usd: float = 5_000.0
+    min_order_notional_usd: float = 10.0
 
     @field_validator(
         "max_risk_per_trade_pct",
@@ -106,6 +111,8 @@ class RiskConfig(BaseModel):
         "taker_fee_rate",
         "maker_fee_rate",
         "slippage",
+        "max_symbol_notional_usd",
+        "min_order_notional_usd",
     )
     @classmethod
     def _positive(cls, v: float) -> float:
