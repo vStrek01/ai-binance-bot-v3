@@ -21,6 +21,7 @@ except Exception:  # noqa: BLE001 - fallback when requests is unavailable
     requests_exceptions = _RequestsFallback()
 
 from bot.utils.logger import get_logger
+from infra.logging import log_event
 
 logger = get_logger(__name__)
 
@@ -70,6 +71,7 @@ class ExchangeClient:
         self._circuit_threshold = max(circuit_breaker_threshold, 1)
         self._circuit_cooldown = max(circuit_breaker_cooldown, 1.0)
         self._circuit_open_until = 0.0
+        self._last_drift_check = 0.0
 
     @property
     def raw(self) -> UMFutures:
@@ -104,6 +106,27 @@ class ExchangeClient:
 
     def cancel_all_orders(self, **params: Any) -> Dict[str, Any]:  # pragma: no cover - future live usage
         return self._call("cancel_all_open_orders", self._client.cancel_all_open_orders, **params)
+
+    def check_time_drift(self, warn_threshold: float = 2.0, abort_threshold: float = 5.0) -> None:
+        now = time.time()
+        if (now - self._last_drift_check) < 30.0:
+            return
+        self._last_drift_check = now
+        try:
+            payload = self._client.time()
+        except Exception as exc:  # noqa: BLE001 - network/SDK issues
+            logger.warning("Server time check failed", extra={"error": str(exc)})
+            return
+        server_ms = int((payload or {}).get("serverTime", 0))
+        if server_ms <= 0:
+            return
+        local_ms = int(now * 1000)
+        drift = abs(server_ms - local_ms) / 1000.0
+        if drift >= abort_threshold:
+            log_event("TIME_DRIFT_CRITICAL", drift_seconds=drift)
+            raise ExchangeRequestError("server_time", "drift", f"Clock drift {drift:.2f}s exceeds abort threshold")
+        if drift >= warn_threshold:
+            log_event("TIME_DRIFT_WARNING", drift_seconds=drift)
 
     def _call(self, label: str, func: Callable[..., Any], **params: Any) -> Any:
         self._enforce_circuit(label)

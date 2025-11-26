@@ -25,7 +25,15 @@ class ClientProfile:
 
 def build_data_client(cfg: BotConfig) -> ExchangeClient:
     """Return an ExchangeClient suited for read-only operations."""
-    profile = ClientProfile(label="data", base_url=None, prefer_testnet_keys=False, trading=False)
+    rest_url = _resolve_rest_base_url(cfg)
+    if not rest_url:
+        raise RuntimeError("Unable to resolve REST base URL for data client. Check exchange.rest_base_url in your config.")
+    profile = ClientProfile(
+        label="data",
+        base_url=rest_url,
+        prefer_testnet_keys=cfg.exchange.use_testnet,
+        trading=False,
+    )
     return ExchangeClient(_build_um_client(profile), mode=profile.label)
 
 
@@ -39,24 +47,40 @@ def _determine_trading_profile(cfg: BotConfig) -> ClientProfile:
     runtime = cfg.runtime
     if runtime.dry_run:
         raise RuntimeError("Trading client requested while runtime.dry_run=True. Disable dry run to proceed.")
+    rest_url = _resolve_rest_base_url(cfg)
+    if not rest_url:
+        raise RuntimeError("exchange.rest_base_url must be configured before building a trading client")
     if runtime.use_testnet:
-        logger.info("Initializing Binance testnet client")
+        if not cfg.exchange.use_testnet:
+            raise RuntimeError("Testnet runtime requested but exchange.use_testnet=False. Update your config to stay on demo endpoints.")
+        logger.info("Initializing Binance testnet client", extra={"rest_base": rest_url})
         return ClientProfile(
             label="testnet",
-            base_url=runtime.testnet_base_url,
+            base_url=rest_url,
             prefer_testnet_keys=True,
             trading=True,
         )
     if runtime.live_trading:
         _ensure_live_confirmation(runtime)
-        logger.warning("Initializing LIVE Binance client. Proceed with extreme caution.")
+        if cfg.exchange.use_testnet:
+            raise RuntimeError("Live trading requested while exchange.use_testnet=True. Configure mainnet endpoints before proceeding.")
+        logger.warning("Initializing LIVE Binance client. Proceed with extreme caution.", extra={"rest_base": rest_url})
         return ClientProfile(
             label="live",
-            base_url=runtime.live_base_url,
+            base_url=rest_url,
             prefer_testnet_keys=False,
             trading=True,
         )
     raise RuntimeError("Trading client requested but neither testnet nor live trading is enabled in the runtime config.")
+
+
+def _resolve_rest_base_url(cfg: BotConfig) -> Optional[str]:
+    candidate = (cfg.exchange.rest_base_url or "").strip()
+    if candidate:
+        return candidate
+    runtime = cfg.runtime
+    fallback = runtime.testnet_base_url if runtime.use_testnet else runtime.live_base_url
+    return fallback.strip() if isinstance(fallback, str) else None
 
 
 def _ensure_live_confirmation(runtime: RuntimeConfig) -> None:

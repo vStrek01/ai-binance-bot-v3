@@ -160,13 +160,25 @@ class MultiSymbolRunnerBase:
         self._risk_state_cache: Optional[Dict[str, Any]] = None
 
     async def run(self) -> None:
+        await self._run_loop(max_cycles=None)
+
+    async def run_cycles(self, cycles: int) -> None:
+        if cycles <= 0:
+            return
+        await self._run_loop(max_cycles=cycles)
+
+    async def _run_loop(self, *, max_cycles: Optional[int]) -> None:
         logger.info("%s runner starting for %s symbols", self.mode_label, len(self.contexts))
         self._initialize_status()
         await self._before_loop()
+        completed = 0
         try:
             while True:
                 await self._before_step()
                 self._step_all()
+                completed += 1
+                if max_cycles is not None and completed >= max_cycles:
+                    break
                 await asyncio.sleep(self.poll_interval)
         except asyncio.CancelledError:  # pragma: no cover - cooperative cancellation
             raise

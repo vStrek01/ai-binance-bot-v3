@@ -171,6 +171,30 @@ def test_load_rl_overrides_blocks_live_context(monkeypatch: pytest.MonkeyPatch, 
     assert captured["active"] is True
 
 
+def test_build_strategy_params_skips_rl_for_live_context_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = load_config(base_dir=tmp_path)
+    cfg = _with_runtime(cfg, use_rl_policy=True)
+
+    def _fail(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("RL store should not be resolved for live/demo-live contexts without explicit opt-in")
+
+    monkeypatch.setattr(runner_mod, "_resolve_rl_store", _fail)
+    params, overrides, source = runner_mod.build_strategy_params_with_meta(
+        cfg,
+        "BTCUSDT",
+        "1m",
+        use_best=False,
+        rl_context="live",
+    )
+
+    assert overrides is None
+    assert source == "default"
+    assert params.fast_ema == int(cfg.strategy.default_parameters["fast_ema"])
+
+
 @pytest.mark.parametrize("rl_context", ["backtest", "optimizer"])
 def test_rl_overrides_apply_offline_contexts(
     rl_context: str,
@@ -303,6 +327,8 @@ def test_live_profile_enforces_confirmation(monkeypatch: pytest.MonkeyPatch, tmp
         use_testnet=False,
         live_trading=True,
     )
+    cfg.exchange.use_testnet = False
+    cfg.exchange.rest_base_url = "https://fapi.binance.com"
     called = False
 
     def _mark(_runtime: Any) -> None:

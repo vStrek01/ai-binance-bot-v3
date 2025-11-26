@@ -1,0 +1,24 @@
+run_mode: demo-live
+
+runtime:
+  dry_run: false
+  live_trading: true
+  use_testnet: true
+  require_live_confirmation: true
+  poll_interval_seconds: 30
+  max_margin_utilization: 0.35
+
+exchange:
+  use_testnet: true
+  rest_base_url: "https://testnet.binancefuture.com"
+  ws_market_url: "wss://stream.binancefuture.com/stream"
+  ws_user_url: "wss://stream.binancefuture.com/ws"
+
+risk:
+  per_trade_risk: 0.001           # 0.1% max risk per trade
+  max_daily_loss_pct: 0.01        # 1.0% max daily drawdown
+  leverage: 10
+  max_consecutive_losses: 3
+  max_notional_per_symbol: 500.0
+  max_notional_global: 1500.0
+  require_sl_tp: true

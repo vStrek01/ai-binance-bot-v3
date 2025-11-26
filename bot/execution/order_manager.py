@@ -10,6 +10,7 @@ from bot.execution.balance_manager import BalanceManager
 from bot.execution.exchange_client import ExchangeClient, ExchangeRequestError
 from bot.live_logging import OrderAuditLogger
 from bot.utils.logger import get_logger
+from infra.logging import log_event
 
 logger = get_logger(__name__)
 
@@ -100,6 +101,14 @@ class OrderManager:
         attempts = 2 if not request.reduce_only else 1
         for attempt in range(attempts):
             self._logger.log({"event": "request", **payload})
+            self._client.check_time_drift()
+            self._emit_order_event(
+                "ORDER_PLACED",
+                request,
+                quantity=self._parse_float(payload.get("quantity")) or normalized_qty,
+                payload=payload,
+                attempt=attempt + 1,
+            )
             try:
                 response = self._client.place_order(**payload)
             except ExchangeRequestError as exc:
@@ -122,6 +131,13 @@ class OrderManager:
                     continue
                 raise OrderPlacementError(error) from exc
             order = self._record_success(cache_key, request, normalized_qty, response, now)
+            self._emit_order_event(
+                "ORDER_FILLED",
+                request,
+                quantity=order.quantity,
+                payload=payload,
+                response=response,
+            )
             return order
         raise OrderPlacementError(OrderError("unknown", None, "Exceeded order retries", False))
 
@@ -230,6 +246,35 @@ class OrderManager:
             return int(value)
         except (TypeError, ValueError):
             return None
+
+    def _emit_order_event(
+        self,
+        event: str,
+        request: OrderRequest,
+        *,
+        quantity: float,
+        payload: Dict[str, Any],
+        response: Dict[str, Any] | None = None,
+        attempt: int | None = None,
+    ) -> None:
+        est_price = self._parse_float((response or {}).get("avgPrice"))
+        if est_price is None:
+            est_price = self._parse_float(payload.get("price"))
+        if est_price is None and request.price is not None:
+            est_price = float(request.price)
+        size_usd = quantity * est_price if est_price else None
+        log_event(
+            event,
+            run_mode=self._cfg.run_mode,
+            symbol=request.symbol,
+            side=request.side,
+            qty=quantity,
+            size_usd=size_usd,
+            reduce_only=request.reduce_only,
+            client_order_id=payload.get("newClientOrderId"),
+            status=(response or {}).get("status"),
+            attempt=attempt,
+        )
 
 
 __all__ = [

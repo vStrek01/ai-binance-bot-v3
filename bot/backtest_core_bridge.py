@@ -87,10 +87,15 @@ def _build_safety_limits(cfg: BotConfig) -> SafetyLimits:
     leverage = max(cfg.risk.leverage, 1.0)
     exposure_cap = max(cfg.risk.max_account_exposure, 0.01)
     total_notional = cfg.backtest.initial_balance * leverage * exposure_cap
+    configured_global_cap = cfg.risk.max_notional_global or 0.0
+    max_total_notional = max(configured_global_cap, total_notional, cfg.backtest.initial_balance)
+    loss_cap = cfg.risk.max_consecutive_losses or 0
+    if loss_cap <= 0:
+        loss_cap = max(cfg.risk.max_concurrent_symbols, 1)
     return SafetyLimits(
         max_daily_drawdown_pct=max(max_daily_pct, 1.0),
-        max_total_notional_usd=max(total_notional, cfg.backtest.initial_balance),
-        max_consecutive_losses=max(cfg.risk.max_concurrent_symbols, 1),
+        max_total_notional_usd=max_total_notional,
+        max_consecutive_losses=loss_cap,
     )
 
 

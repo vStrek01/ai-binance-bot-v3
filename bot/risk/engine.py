@@ -35,6 +35,8 @@ class RiskState:
     loss_pct: float
     max_daily_loss_pct: float
     max_daily_loss_abs: float | None
+    loss_streak: int
+    max_consecutive_losses: int
     trading_mode: "TradingMode"
     flatten_required: bool
     last_trigger_reason: Optional[str]
@@ -88,6 +90,7 @@ class TradingMode(Enum):
     NORMAL = "normal"
     HALTED_DAILY_LOSS = "halted_daily_loss"
     HALTED_MANUAL = "halted_manual"
+    HALTED_LOSS_STREAK = "halted_loss_streak"
 
 
 class RiskEngine:
@@ -109,6 +112,11 @@ class RiskEngine:
         self._flatten_positions: bool = False
         self._audit: Deque[RiskEvent] = deque(maxlen=self._AUDIT_LIMIT)
         self._state_version: int = 0
+        self._loss_streak: int = 0
+        self._max_loss_streak: int = max(int(cfg.risk.max_consecutive_losses or 0), 0)
+        self._demo_mode = cfg.run_mode == "demo-live"
+        self._abs_symbol_cap = max(float(cfg.risk.max_notional_per_symbol or 0.0), 0.0)
+        self._abs_global_cap = max(float(cfg.risk.max_notional_global or 0.0), 0.0)
 
     def on_balance_refresh(self, free_balance: float) -> None:
         """Releases cached warnings once free margin recovers."""
@@ -146,9 +154,15 @@ class RiskEngine:
         self.update_equity(trade.equity)
         self._pnl_window.append((now, trade.pnl))
         self._window_realized += trade.pnl
+        if trade.pnl < 0:
+            self._loss_streak += 1
+        elif trade.pnl > 0:
+            self._loss_streak = 0
         self._prune_loss_window(now)
         if not self._reference_equity:
             self._reference_equity = self._last_equity or max(trade.equity, 0.0)
+        if self._max_loss_streak > 0 and self._loss_streak >= self._max_loss_streak:
+            self._trigger_loss_streak(now, symbol=trade.symbol)
         self._evaluate_daily_limits(now, symbol=trade.symbol)
 
     def evaluate_open(self, request: OpenTradeRequest) -> RiskDecision:
@@ -198,6 +212,8 @@ class RiskEngine:
             loss_pct=loss_pct,
             max_daily_loss_pct=self._config.risk.max_daily_loss_pct,
             max_daily_loss_abs=self._config.risk.max_daily_loss_abs,
+            loss_streak=self._loss_streak,
+            max_consecutive_losses=self._max_loss_streak,
             trading_mode=self._trading_mode,
             flatten_required=self._flatten_positions,
             last_trigger_reason=self._halt_reason,
@@ -216,6 +232,8 @@ class RiskEngine:
             "pnl_today": state.pnl_today,
             "loss_abs": state.loss_abs,
             "loss_pct": state.loss_pct,
+            "loss_streak": state.loss_streak,
+            "max_consecutive_losses": state.max_consecutive_losses,
             "max_daily_loss_pct": state.max_daily_loss_pct,
             "max_daily_loss_abs": state.max_daily_loss_abs,
             "trading_mode": state.trading_mode.value,
@@ -292,6 +310,7 @@ class RiskEngine:
         self._halt_reason = None
         self._loss_triggered_at = None
         self._flatten_positions = False
+        self._loss_streak = 0
         self._state_version += 1
 
     def _evaluate_daily_limits(self, now: float, *, symbol: Optional[str]) -> None:
@@ -322,6 +341,19 @@ class RiskEngine:
             self._trading_mode.value,
             self._flatten_positions,
         )
+
+    def _trigger_loss_streak(self, now: float, *, symbol: Optional[str]) -> None:
+        if self._max_loss_streak <= 0:
+            return
+        if self._trading_mode not in {TradingMode.NORMAL, TradingMode.HALTED_LOSS_STREAK}:
+            return
+        if self._trading_mode == TradingMode.HALTED_LOSS_STREAK and self._halt_reason == "loss_streak":
+            return
+        self._trading_mode = TradingMode.HALTED_LOSS_STREAK
+        self._halt_reason = "loss_streak"
+        self._loss_triggered_at = now
+        self._state_version += 1
+        self._record_event("loss_streak_triggered", symbol, self._halt_reason)
 
     def _record_event(
         self,
@@ -419,6 +451,30 @@ class RiskEngine:
                 ratio = remaining_total / notional
                 if ratio < scale:
                     limiting_reason = "portfolio_cap"
+                scale = min(scale, ratio)
+
+        if self._abs_symbol_cap > 0:
+            remaining_abs = max(self._abs_symbol_cap - symbol_exposure, 0.0)
+            if remaining_abs <= 0:
+                return 0.0, "symbol_abs_cap"
+            if notional > remaining_abs:
+                if self._demo_mode:
+                    return 0.0, "symbol_abs_cap"
+                ratio = remaining_abs / notional
+                if ratio < scale:
+                    limiting_reason = "symbol_abs_cap"
+                scale = min(scale, ratio)
+
+        if self._abs_global_cap > 0:
+            remaining_abs_total = max(self._abs_global_cap - total_exposure, 0.0)
+            if remaining_abs_total <= 0:
+                return 0.0, "portfolio_abs_cap"
+            if notional > remaining_abs_total:
+                if self._demo_mode:
+                    return 0.0, "portfolio_abs_cap"
+                ratio = remaining_abs_total / notional
+                if ratio < scale:
+                    limiting_reason = "portfolio_abs_cap"
                 scale = min(scale, ratio)
 
         scaled_qty = quantity * max(min(scale, 1.0), 0.0)

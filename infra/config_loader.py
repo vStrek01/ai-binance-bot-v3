@@ -28,7 +28,8 @@ def load_config(
 ) -> AppConfig:
     """Load and validate the merged configuration as an AppConfig instance."""
 
-    load_dotenv()
+    dotenv_path = (base_dir / ".env") if base_dir else None
+    load_dotenv(dotenv_path=dotenv_path, override=False)
     file_config = _read_config_file(path)
     run_mode = _resolve_run_mode(file_config.get("run_mode"), mode_override)
     merged = _merge_dicts(file_config, _build_env_overrides(run_mode, file_config.get("exchange")))
@@ -145,13 +146,32 @@ def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, 
 
 
 def _apply_mode_defaults(config: Dict[str, Any], run_mode: RunMode) -> None:
+    runtime = config.setdefault("runtime", {})
     exchange = config.setdefault("exchange", {})
+    risk = config.setdefault("risk", {})
 
     if run_mode == "demo-live":
+        runtime.setdefault("dry_run", False)
+        runtime.setdefault("live_trading", True)
+        runtime.setdefault("use_testnet", True)
         exchange.setdefault("use_testnet", True)
         exchange.setdefault("rest_base_url", DEMO_REST_BASE_URL)
         exchange.setdefault("ws_market_url", DEMO_WS_MARKET_URL)
         exchange.setdefault("ws_user_url", DEMO_WS_USER_URL)
+        risk.setdefault("per_trade_risk", 0.001)
+        risk.setdefault("max_daily_loss_pct", 0.01)
+        risk.setdefault("max_consecutive_losses", 3)
+        risk.setdefault("max_notional_per_symbol", 500.0)
+        risk.setdefault("max_notional_global", 1_500.0)
+        risk.setdefault("require_sl_tp", True)
+    elif run_mode == "live":
+        runtime.setdefault("dry_run", False)
+        runtime.setdefault("live_trading", True)
+        runtime.setdefault("use_testnet", False)
+        exchange.setdefault("use_testnet", False)
+        exchange.setdefault("rest_base_url", MAINNET_REST_BASE_URL)
+        exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)
+        exchange.setdefault("ws_user_url", MAINNET_WS_USER_URL)
     else:
         exchange.setdefault("rest_base_url", MAINNET_REST_BASE_URL)
         exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)

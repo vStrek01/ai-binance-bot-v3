@@ -78,11 +78,15 @@ def _sanitize_limit(limit: int) -> int:
 
 def _build_dashboard_state(limit: int) -> Dict[str, Any]:
     sanitized = _sanitize_limit(limit)
+    status_snapshot = status_store.snapshot()
     return {
         "equity": logging_utils.get_equity_snapshot(),
         "positions": logging_utils.get_open_positions(),
         "recent_events": logging_utils.get_recent_events(limit=sanitized),
         "limit": sanitized,
+        "run_mode": status_snapshot.get("mode"),
+        "runtime": status_snapshot.get("runtime", {}),
+        "risk_state": status_snapshot.get("risk_state", {}),
     }
 
 

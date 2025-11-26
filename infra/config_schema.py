@@ -8,6 +8,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 RunMode = Literal["backtest", "dry-run", "demo-live", "live"]
 
+DEMO_REST_HOSTS: tuple[str, ...] = ("demo-fapi.binance.com", "testnet.binancefuture.com")
+DEMO_WS_HOSTS: tuple[str, ...] = ("binancefuture.com", "demo-fapi.binance.com")
+MAINNET_REST_HOSTS: tuple[str, ...] = ("fapi.binance.com",)
+MAINNET_WS_HOSTS: tuple[str, ...] = ("fstream.binance.com",)
+
 
 class PathsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -43,9 +48,13 @@ class RiskConfig(BaseModel):
     max_concurrent_symbols: int = Field(3, ge=0)
     max_daily_loss_pct: float = Field(0.02, ge=0.0, le=1.0)
     max_daily_loss_abs: float | None = Field(default=None, gt=0.0)
+    max_consecutive_losses: int = Field(0, ge=0)
+    max_notional_per_symbol: float | None = Field(default=None, gt=0.0)
+    max_notional_global: float | None = Field(default=None, gt=0.0)
     stop_trading_on_daily_loss: bool = True
     close_positions_on_daily_loss: bool = False
     daily_loss_lookback_hours: int = Field(24, ge=1)
+    require_sl_tp: bool = False
 
 
 class BacktestConfig(BaseModel):
@@ -266,14 +275,18 @@ class AppConfig(BaseModel):
     @model_validator(mode="after")
     def _validate_modes(self) -> "AppConfig":
         rest_url = (self.exchange.rest_base_url or "").lower()
-        demo_hosts = ("demo-fapi.binance.com", "testnet.binancefuture.com")
-        mainnet_hosts = ("fapi.binance.com",)
+        ws_market_url = (self.exchange.ws_market_url or "").lower()
+        ws_user_url = (self.exchange.ws_user_url or "").lower() if self.exchange.ws_user_url else ""
 
         if self.run_mode == "demo-live":
             if not self.exchange.use_testnet:
                 raise ValueError("Demo-live requires exchange.use_testnet to be True")
-            if not any(host in rest_url for host in demo_hosts):
+            if not any(host in rest_url for host in DEMO_REST_HOSTS):
                 raise ValueError("Demo-live requires exchange.rest_base_url to point to Binance Futures testnet")
+            if not any(host in ws_market_url for host in DEMO_WS_HOSTS):
+                raise ValueError("Demo-live requires exchange.ws_market_url to point to Binance Futures testnet streams")
+            if ws_user_url and not any(host in ws_user_url for host in DEMO_WS_HOSTS):
+                raise ValueError("Demo-live requires exchange.ws_user_url to remain on the Binance Futures testnet")
 
         if self.run_mode == "live":
             missing = [name for name in ("api_key", "api_secret") if not getattr(self.exchange, name)]
@@ -281,8 +294,17 @@ class AppConfig(BaseModel):
                 raise ValueError("Live mode requires exchange.api_key and exchange.api_secret to be set")
             if self.exchange.use_testnet:
                 raise ValueError("Live mode requires exchange.use_testnet to be False")
-            if not any(host in rest_url for host in mainnet_hosts) or any(host in rest_url for host in demo_hosts):
+            demo_rest = any(host in rest_url for host in DEMO_REST_HOSTS)
+            if not any(host in rest_url for host in MAINNET_REST_HOSTS) or demo_rest:
                 raise ValueError("Live mode requires exchange.rest_base_url to target Binance Futures mainnet")
+            demo_ws = any(host in ws_market_url for host in DEMO_WS_HOSTS)
+            if demo_ws or not any(host in ws_market_url for host in MAINNET_WS_HOSTS):
+                raise ValueError("Live mode requires exchange.ws_market_url to target Binance Futures mainnet streams")
+            if ws_user_url:
+                if any(host in ws_user_url for host in DEMO_WS_HOSTS):
+                    raise ValueError("Live mode requires exchange.ws_user_url to avoid Binance Futures testnet streams")
+                if not any(host in ws_user_url for host in MAINNET_WS_HOSTS):
+                    raise ValueError("Live mode requires exchange.ws_user_url to point to Binance Futures mainnet streams")
 
         if self.runtime.max_margin_utilization <= 0 or self.runtime.max_margin_utilization > 1:
             raise ValueError("runtime.max_margin_utilization must be within (0, 1]")

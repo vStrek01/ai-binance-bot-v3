@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from bot.core.config import BotConfig
 from bot.exchange_info import ExchangeInfoManager
-from bot.execution.balance_manager import BalanceManager, ExchangePosition
+from bot.execution.balance_manager import BalanceManager, BalanceSnapshot, ExchangePosition
 from bot.execution.exchange_client import ExchangeClient, ExchangeRequestError
 from bot.execution.market_loop import EntryPlan, ExitPlan, MarketLoop
 from bot.execution.order_manager import OrderManager, OrderPlacementError, OrderRequest
@@ -19,6 +19,7 @@ from bot.risk import RiskEngine, TradeEvent, volatility_snapshot
 from bot.signals.strategies import StrategyParameters, StrategySignal
 from bot.status import status_store
 from bot.utils.logger import get_logger
+from infra.logging import log_event
 
 logger = get_logger(__name__)
 
@@ -45,6 +46,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         mode_label: str = "live",
     ) -> None:
         self._config = cfg
+        self._account_asset = cfg.runtime.demo_account_asset.upper()
         self.client = client
         self.order_logger = OrderAuditLogger(cfg)
         self.trade_logger = LiveTradeLogger(cfg)
@@ -94,6 +96,9 @@ class LiveTrader(MultiSymbolRunnerBase):
             )
             for ctx in self.contexts
         }
+        self._position_cache: Dict[str, Dict[str, Any]] = {}
+        self._pending_closures: set[str] = set()
+        self._kill_switch_event_key: Optional[Tuple[str, float]] = None
 
     async def _before_loop(self) -> None:
         for ctx in self.contexts:
@@ -188,6 +193,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         self.available_balance = snapshot.available
         self.balance = snapshot.available
         status_store.update_balance(snapshot.available)
+        self._emit_equity_event(snapshot)
         return snapshot.available
 
 
@@ -225,6 +231,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         position.metadata.setdefault("indicators", {})
         position.metadata["entry_order_id"] = placed.order_id
         position.metadata["opened_at"] = self._timestamp_from_response(placed.raw)
+        self._record_position_open(ctx, position, source=(request.tag or "entry"))
         return True
 
     def _on_position_close_request(
@@ -275,6 +282,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         exit_order_id = self._int_or_none(trade_payload.get("exit_order_id"))
         if exit_order_id is not None:
             self._synced_order_ids.add(exit_order_id)
+        self._record_position_close(ctx, trade_payload)
 
     def _apply_learned_parameters(self) -> None:
         if self.learning_store is None:
@@ -451,6 +459,7 @@ class LiveTrader(MultiSymbolRunnerBase):
             status_store.set_positions(status_entries)
             status_store.set_open_pnl(total_open)
             self._publish_symbol_summaries(status_entries)
+            self._reconcile_position_cache(status_entries)
         self._sync_recent_trades(force=force, backfill=backfill_trades)
 
     def _format_exchange_status(self, snapshot: ExchangePosition) -> Optional[Dict[str, Any]]:
@@ -544,6 +553,10 @@ class LiveTrader(MultiSymbolRunnerBase):
             return
         if ctx.position:
             ctx.position.quantity = live_qty
+
+    def _force_flatten_positions(self, reason: str) -> None:  # type: ignore[override]
+        self._emit_kill_switch_event(reason)
+        super()._force_flatten_positions(reason)
 
     def _sync_recent_trades(self, *, force: bool = False, backfill: bool = False) -> None:
         now = time.time()
@@ -660,4 +673,156 @@ class LiveTrader(MultiSymbolRunnerBase):
             return "SHORT"
         qty = self._safe_float(trade.get("qty"), 0.0)
         return "LONG" if qty >= 0 else "SHORT"
+
+    def _position_cache_key(self, symbol: str, timeframe: str) -> str:
+        return f"{symbol.upper()}::{timeframe or 'NA'}"
+
+    def _snapshot_from_position(self, ctx: MarketContext, position: PaperPosition) -> Dict[str, Any]:
+        snapshot = position.as_status(position.entry_price, 0.0)
+        snapshot["opened_at"] = position.opened_at
+        return snapshot
+
+    def _record_position_open(self, ctx: MarketContext, position: PaperPosition, *, source: str) -> None:
+        snapshot = self._snapshot_from_position(ctx, position)
+        key = self._position_cache_key(ctx.symbol, ctx.timeframe)
+        self._position_cache[key] = snapshot
+        self._pending_closures.discard(key)
+        self._emit_snapshot_open(snapshot, source=source)
+
+    def _record_position_close(self, ctx: MarketContext, trade_payload: Dict[str, Any]) -> None:
+        key = self._position_cache_key(ctx.symbol, ctx.timeframe)
+        cached = dict(self._position_cache.get(key) or {})
+        if not cached:
+            cached = {
+                "symbol": ctx.symbol,
+                "timeframe": ctx.timeframe,
+                "side": trade_payload.get("side"),
+                "quantity": trade_payload.get("quantity"),
+                "entry_price": trade_payload.get("entry_price"),
+                "stop_loss": trade_payload.get("stop_loss"),
+                "take_profit": trade_payload.get("take_profit"),
+            }
+        cached.update(
+            {
+                "mark_price": trade_payload.get("exit_price"),
+                "pnl": trade_payload.get("pnl"),
+            }
+        )
+        self._position_cache[key] = cached
+        self._pending_closures.add(key)
+        self._emit_snapshot_close(
+            cached,
+            reason=trade_payload.get("reason", "exit"),
+            exit_price=trade_payload.get("exit_price"),
+            pnl=trade_payload.get("pnl"),
+        )
+
+    def _reconcile_position_cache(self, snapshots: List[Dict[str, Any]]) -> None:
+        if not snapshots and not self._position_cache:
+            return
+        previous_keys = set(self._position_cache.keys())
+        current_keys: set[str] = set()
+        for snapshot in snapshots:
+            symbol = str(snapshot.get("symbol") or "").upper()
+            timeframe = str(snapshot.get("timeframe") or "")
+            if not symbol:
+                continue
+            key = self._position_cache_key(symbol, timeframe)
+            current_keys.add(key)
+            if key not in self._position_cache:
+                self._position_cache[key] = snapshot
+                self._emit_snapshot_open(snapshot, source="exchange_sync")
+            else:
+                self._position_cache[key] = snapshot
+        removed = previous_keys - current_keys
+        for key in removed:
+            snapshot = self._position_cache.pop(key, None)
+            if snapshot is None:
+                continue
+            if key in self._pending_closures:
+                self._pending_closures.discard(key)
+                continue
+            self._emit_snapshot_close(snapshot, reason="exchange_sync")
+
+    def _emit_snapshot_open(self, snapshot: Dict[str, Any], *, source: str) -> None:
+        payload = self._compact_fields(
+            {
+                "run_mode": self._config.run_mode,
+                "symbol": snapshot.get("symbol"),
+                "timeframe": snapshot.get("timeframe"),
+                "side": snapshot.get("side"),
+                "qty": snapshot.get("quantity"),
+                "entry_price": snapshot.get("entry_price"),
+                "stop_loss": snapshot.get("stop_loss"),
+                "take_profit": snapshot.get("take_profit"),
+                "source": source,
+                "position": snapshot,
+            }
+        )
+        log_event("POSITION_OPENED", **payload)
+
+    def _emit_snapshot_close(
+        self,
+        snapshot: Dict[str, Any],
+        *,
+        reason: str,
+        exit_price: Optional[float] = None,
+        pnl: Optional[float] = None,
+    ) -> None:
+        payload = self._compact_fields(
+            {
+                "run_mode": self._config.run_mode,
+                "symbol": snapshot.get("symbol"),
+                "timeframe": snapshot.get("timeframe"),
+                "side": snapshot.get("side"),
+                "qty": snapshot.get("quantity"),
+                "entry_price": snapshot.get("entry_price"),
+                "exit_price": exit_price or snapshot.get("mark_price"),
+                "pnl": pnl or snapshot.get("pnl"),
+                "reason": reason,
+                "position": snapshot,
+            }
+        )
+        log_event("POSITION_CLOSED", **payload)
+
+    def _emit_equity_event(self, snapshot: BalanceSnapshot) -> None:
+        open_pnl = sum(float(pos.get("pnl", 0.0) or 0.0) for pos in self._last_position_snapshot)
+        payload = self._compact_fields(
+            {
+                "run_mode": self._config.run_mode,
+                "equity": self._estimate_equity(),
+                "balance": snapshot.available,
+                "total_balance": snapshot.total,
+                "unrealized_pnl": open_pnl,
+                "open_positions": len(self._last_position_snapshot),
+                "account_asset": self._account_asset,
+            }
+        )
+        log_event("EQUITY_SNAPSHOT", **payload)
+
+    def _emit_kill_switch_event(self, reason: Optional[str]) -> None:
+        state = self._risk_engine.current_state()
+        key = (reason or "unspecified", state.last_triggered_at or 0.0)
+        if self._kill_switch_event_key == key:
+            return
+        self._kill_switch_event_key = key
+        payload = self._compact_fields(
+            {
+                "run_mode": self._config.run_mode,
+                "reason": reason or state.last_trigger_reason or "unspecified",
+                "equity": state.equity,
+                "pnl_today": state.pnl_today,
+                "loss_abs": state.loss_abs,
+                "loss_pct": state.loss_pct,
+                "loss_streak": state.loss_streak,
+                "max_consecutive_losses": state.max_consecutive_losses,
+                "reference_equity": state.reference_equity,
+                "trading_mode": state.trading_mode.value,
+            }
+        )
+        log_event("KILL_SWITCH_TRIGGERED", **payload)
+
+    @staticmethod
+    def _compact_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+        return {key: value for key, value in data.items() if value is not None}
 __all__ = ["LiveTrader"]

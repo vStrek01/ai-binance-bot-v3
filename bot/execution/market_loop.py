@@ -74,6 +74,9 @@ class MarketLoop:
             return None
         price = float(latest_row["close"])
         volatility = volatility_snapshot(frame, self._cfg)
+        if self._cfg.risk.require_sl_tp and (signal.stop_loss is None or signal.take_profit is None):
+            self._log_sizing_skip(self._ctx, "missing_sl_tp")
+            return None
         sizing_ctx = self._sizing_builder(self._ctx, price, volatility)
         if sizing_ctx is None:
             return None

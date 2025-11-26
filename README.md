@@ -99,6 +99,8 @@ python -m bot.runner optimize --symbol BTCUSDT --interval 1m
 
 ## Demo-Live Trading (Binance Futures Testnet)
 
+> **Need the full operator checklist?** Read `docs/demo_live.md` for the complete runbook covering API keys, `.env` examples, config defaults, launch commands, observability, and the pre-flight safety checklist.
+
 `demo-live` mode connects directly to the Binance USDS-M Futures testnet (`demo-fapi` REST + `demo-stream` websockets). Orders are placed against your demo balance via the full production stack—risk engine, kill-switch, trade lifecycle, and strategy logic all run exactly as they would in live trading, but there is **zero real-money risk**.
 
 ### Demo API keys

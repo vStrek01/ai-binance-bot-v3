@@ -89,6 +89,13 @@ class StatusStore:
             "live_metrics": {},
             "metrics": {},
             "risk_state": {},
+            "runtime": {
+                "run_mode": "idle",
+                "use_testnet": False,
+                "rest_base_url": None,
+                "ws_market_url": None,
+                "ws_user_url": None,
+            },
             "rl_state": {
                 "active": False,
                 "applied": False,
@@ -152,6 +159,10 @@ class StatusStore:
             if not isinstance(risk_state, dict):
                 risk_state = {}
             payload["risk_state"] = dict(risk_state)
+            runtime_ctx = self._state.get("runtime", {})
+            if not isinstance(runtime_ctx, dict):
+                runtime_ctx = {}
+            payload["runtime"] = dict(runtime_ctx)
             rl_state = self._state.get("rl_state", {})
             if not isinstance(rl_state, dict):
                 rl_state = {}
@@ -261,6 +272,29 @@ class StatusStore:
     def set_rl_state(self, payload: Dict[str, Any]) -> None:
         with self._lock:
             self._state["rl_state"] = dict(payload)
+            self._touch()
+            self._persist_locked()
+
+    def set_runtime_context(
+        self,
+        *,
+        run_mode: str,
+        use_testnet: bool,
+        rest_base_url: Optional[str] = None,
+        ws_market_url: Optional[str] = None,
+        ws_user_url: Optional[str] = None,
+    ) -> None:
+        with self._lock:
+            self._state.setdefault("runtime", {})
+            self._state["runtime"].update(
+                {
+                    "run_mode": run_mode,
+                    "use_testnet": bool(use_testnet),
+                    "rest_base_url": rest_base_url,
+                    "ws_market_url": ws_market_url,
+                    "ws_user_url": ws_user_url,
+                }
+            )
             self._touch()
             self._persist_locked()
 

@@ -94,6 +94,32 @@ def test_demo_live_rejects_mainnet_urls() -> None:
         )
 
 
+def test_demo_live_rejects_mainnet_ws_urls() -> None:
+    with pytest.raises(ValidationError, match="ws_market_url"):
+        _build_valid_app_config(
+            run_mode="demo-live",
+            exchange=ExchangeConfig(
+                use_testnet=True,
+                rest_base_url="https://demo-fapi.binance.com",
+                ws_market_url="wss://fstream.binance.com/ws",
+            ),
+        )
+
+
+def test_live_mode_rejects_demo_ws_urls() -> None:
+    with pytest.raises(ValidationError, match="ws_market_url"):
+        _build_valid_app_config(
+            run_mode="live",
+            exchange=ExchangeConfig(
+                api_key="k",
+                api_secret="s",
+                use_testnet=False,
+                rest_base_url="https://fapi.binance.com",
+                ws_market_url="wss://fstream.binancefuture.com",
+            ),
+        )
+
+
 def test_live_mode_rejects_demo_urls() -> None:
     with pytest.raises(ValidationError, match="mainnet"):
         _build_valid_app_config(

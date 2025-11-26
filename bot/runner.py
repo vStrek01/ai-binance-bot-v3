@@ -31,6 +31,7 @@ from bot.rl.types import compute_baseline_hash
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
 from bot.utils.logger import get_logger
+import infra.logging as logging_utils
 
 logger = get_logger(__name__)
 
@@ -72,6 +73,24 @@ def _report_rl_state(
             "symbol": symbol,
             "timeframe": interval,
         }
+    )
+
+
+def _emit_demo_live_snapshot(cfg: BotConfig, *, symbols: Sequence[str], interval: str, dry_run: bool) -> None:
+    equity = cfg.runtime.paper_account_balance
+    logging_utils.log_event(
+        "EQUITY_SNAPSHOT",
+        run_mode=cfg.run_mode,
+        mode="demo-live",
+        dry_run=dry_run,
+        use_testnet=cfg.exchange.use_testnet,
+        rest_base=cfg.exchange.rest_base_url,
+        ws_market=cfg.exchange.ws_market_url,
+        ws_user=cfg.exchange.ws_user_url,
+        leverage=cfg.risk.leverage,
+        symbols=list(symbols),
+        interval=interval,
+        equity=equity,
     )
 def policy_guardrails(
     cfg: BotConfig,
@@ -532,20 +551,60 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
             "Demo-live mode requires runtime.use_testnet=True so orders stay on the Futures Testnet."
             " Set BOT_USE_TESTNET=1 or adjust your config before retrying."
         )
-    base_url = cfg.runtime.testnet_base_url.strip()
-    if base_url.lower().endswith("fapi.binance.com") and "demo" not in base_url.lower() and "testnet" not in base_url.lower():
+    base_url = (cfg.exchange.rest_base_url or "").strip()
+    if not base_url:
+        raise RuntimeError("exchange.rest_base_url must be configured before running demo-live")
+    lowered = base_url.lower()
+    if lowered.endswith("fapi.binance.com") and "demo" not in lowered and "testnet" not in lowered:
         raise RuntimeError(
-            "Demo-live cannot target Binance mainnet endpoints. Configure BOT_TESTNET_BASE_URL"
-            " with the demo-fapi or testnet URL."
+            "Demo-live cannot target Binance mainnet endpoints. Set BINANCE_REST_URL or exchange.rest_base_url to the demo-fapi/testnet host."
         )
+    ws_market = (cfg.exchange.ws_market_url or "").strip()
+    ws_user = (cfg.exchange.ws_user_url or "").strip() or "n/a"
     logger.info(
-        "RUN_MODE=demo-live (Binance Futures Testnet) | rest_base=%s",
+        "RUN_MODE=demo-live (Binance Futures Testnet) | rest_base=%s | ws_market=%s | ws_user=%s",
         base_url,
+        ws_market,
+        ws_user,
     )
+    rl_live_enabled = cfg.runtime.use_rl_policy and cfg.rl.enabled and cfg.rl.apply_to_live
+    if not rl_live_enabled:
+        logger.info("RL overrides disabled for demo-live (set runtime.use_rl_policy=1 and rl.apply_to_live=1 to enable)")
+    elif cfg.runtime.use_rl_policy:
+        logger.warning("RL overrides enabled for demo-live; ensure guardrails are configured")
+    if cfg.llm.enabled:
+        logger.warning("LLM insights enabled for demo-live session. Disable via llm.enabled=false to keep deterministic baseline.")
+    else:
+        logger.info("LLM insights remain disabled for demo-live")
+    use_best = getattr(args, "use_best", False)
+    if cfg.runtime.dry_run:
+        logger.info("BOT_DRY_RUN detected; running demo-live smoke test with paper execution only")
+        data_client = build_data_client(cfg)
+        exchange = ExchangeInfoManager(cfg, client=data_client)
+        exchange.refresh(force=True)
+        symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
+        markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
+        _emit_demo_live_snapshot(cfg, symbols=symbols, interval=args.interval, dry_run=True)
+        logger.info("Initializing demo-live dry-run runner for symbols: %s", ", ".join(symbols))
+        portfolio_meta = {
+            "label": f"DEMO-LIVE DRY ({len(symbols)})",
+            "symbols": [{"symbol": sym, "timeframe": args.interval} for sym in symbols],
+            "timeframe": args.interval,
+            "metric": "demo_live_smoke",
+        }
+        runner = MultiSymbolDryRunner(
+            markets,
+            exchange,
+            cfg,
+            mode_label="demo-live-smoke",
+            portfolio_meta=portfolio_meta,
+        )
+        asyncio.run(runner.run_cycles(1))
+        return
+
     trading_client = build_trading_client(cfg)
     exchange = ExchangeInfoManager(cfg, client=trading_client)
     exchange.refresh(force=True)
-    use_best = getattr(args, "use_best", False)
     symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
     markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
     logger.info("Initializing demo-live runner for symbols: %s", ", ".join(symbols))
@@ -707,6 +766,20 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     cfg = load_config()
     ensure_directories(cfg.paths)
     status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
+    status_store.set_runtime_context(
+        run_mode=cfg.run_mode,
+        use_testnet=cfg.runtime.use_testnet,
+        rest_base_url=cfg.exchange.rest_base_url,
+        ws_market_url=cfg.exchange.ws_market_url,
+        ws_user_url=cfg.exchange.ws_user_url,
+    )
+    logging_utils.bind_log_context(
+        run_mode=cfg.run_mode,
+        use_testnet=cfg.runtime.use_testnet,
+        rest_base_url=cfg.exchange.rest_base_url,
+        ws_market_url=cfg.exchange.ws_market_url,
+        ws_user_url=cfg.exchange.ws_user_url,
+    )
     parser = build_parser(cfg)
     args = parser.parse_args(argv)
     func = getattr(args, "func", None)

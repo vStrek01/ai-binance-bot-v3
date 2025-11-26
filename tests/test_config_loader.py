@@ -34,12 +34,14 @@ def test_env_aliases_are_normalized(monkeypatch: MonkeyPatch, tmp_path: Path) ->
 
 
 def test_mode_override_wins_over_env(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("run_mode: dry-run\n", encoding="utf-8")
     monkeypatch.setenv("RUN_MODE", "backtest")
     monkeypatch.setenv("BINANCE_API_KEY", "key")
     monkeypatch.setenv("BINANCE_API_SECRET", "secret")
     monkeypatch.setenv("BINANCE_TESTNET", "0")
 
-    cfg = load_config(path=str(tmp_path / "missing.yaml"), base_dir=tmp_path, mode_override="live")
+    cfg = load_config(path=str(config_path), base_dir=tmp_path, mode_override="live")
 
     assert cfg.run_mode == "live"
     assert cfg.exchange.use_testnet is False
@@ -76,3 +78,34 @@ def test_demo_live_defaults_to_testnet_urls(monkeypatch: MonkeyPatch, tmp_path: 
     assert cfg.exchange.use_testnet is True
     assert cfg.exchange.rest_base_url == "https://demo-fapi.binance.com"
     assert "binancefuture" in cfg.exchange.ws_market_url
+
+
+def test_yaml_run_mode_without_overrides(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("run_mode: demo-live\n", encoding="utf-8")
+
+    cfg = load_config(path=str(config_path), base_dir=tmp_path)
+
+    assert cfg.run_mode == "demo-live"
+    assert cfg.exchange.use_testnet is True
+
+
+def test_env_run_mode_beats_yaml(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("run_mode: backtest\n", encoding="utf-8")
+    monkeypatch.setenv("RUN_MODE", "demo-live")
+
+    cfg = load_config(path=str(config_path), base_dir=tmp_path)
+
+    assert cfg.run_mode == "demo-live"
+
+
+def test_demo_live_runtime_defaults(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("run_mode: demo-live\n", encoding="utf-8")
+
+    cfg = load_config(path=str(config_path), base_dir=tmp_path)
+
+    assert cfg.runtime.dry_run is False
+    assert cfg.runtime.live_trading is True
+    assert cfg.runtime.use_testnet is True

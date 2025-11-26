@@ -27,11 +27,18 @@ async def test_dashboard_state_endpoint_combines_helpers(client: AsyncClient, mo
     sample_equity: Dict[str, Any] = {"equity": 10_500, "open_positions": 1, "timestamp": "2024-01-01T00:00:00"}
     sample_positions: List[Dict[str, Any]] = [{"symbol": "BTCUSDT", "side": "LONG", "quantity": 1}]
     sample_events: List[Dict[str, Any]] = [
-        {"event": "ORDER_PLACED", "symbol": "BTCUSDT", "timestamp": "2024-01-01T00:00:00"}
+        {"event": "ORDER_PLACED", "symbol": "BTCUSDT", "timestamp": "2024-01-01T00:00:00"},
+        {"event": "KILL_SWITCH_TRIGGERED", "symbol": "BTCUSDT", "timestamp": "2024-01-01T00:01:00"},
     ]
+    sample_status = {
+        "mode": "demo-live",
+        "runtime": {"run_mode": "demo-live", "use_testnet": True, "rest_base_url": "https://demo"},
+        "risk_state": {"trading_paused": True, "reason": "daily_loss_pct"},
+    }
 
     monkeypatch.setattr(api_module.logging_utils, "get_equity_snapshot", lambda: sample_equity)
     monkeypatch.setattr(api_module.logging_utils, "get_open_positions", lambda: sample_positions)
+    monkeypatch.setattr(api_module.status_store, "snapshot", lambda: sample_status)
 
     captured_limits: List[int] = []
 
@@ -48,6 +55,9 @@ async def test_dashboard_state_endpoint_combines_helpers(client: AsyncClient, mo
     assert payload["positions"] == sample_positions
     assert payload["recent_events"] == sample_events
     assert payload["limit"] == 200  # clamped to MAX_EVENT_LIMIT
+    assert payload["run_mode"] == "demo-live"
+    assert payload["runtime"]["use_testnet"] is True
+    assert payload["risk_state"].get("reason") == "daily_loss_pct"
     assert captured_limits[-1] == 200
 
 
