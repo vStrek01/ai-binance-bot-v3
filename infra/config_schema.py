@@ -24,9 +24,11 @@ class ExchangeConfig(BaseModel):
     use_testnet: bool = True
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
-    base_url: str = "https://fapi.binance.com"
+    rest_base_url: str = "https://fapi.binance.com"
+    ws_market_url: str = "wss://fstream.binance.com"
+    ws_user_url: Optional[str] = "wss://fstream.binance.com/ws"
 
-    @field_validator("api_key", "api_secret", mode="before")
+    @field_validator("api_key", "api_secret", "ws_user_url", mode="before")
     @classmethod
     def _strip_empty(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
@@ -65,10 +67,22 @@ class AppConfig(BaseModel):
 
     @model_validator(mode="after")
     def _validate_live_exchange(self) -> "AppConfig":
+        rest_url = (self.exchange.rest_base_url or "").lower()
+        demo_hosts = ("demo-fapi.binance.com", "testnet.binancefuture.com")
+        mainnet_hosts = ("fapi.binance.com",)
+
+        if self.run_mode == "demo-live":
+            if not self.exchange.use_testnet:
+                raise ValueError("Demo-live requires exchange.use_testnet to be True")
+            if not any(host in rest_url for host in demo_hosts):
+                raise ValueError("Demo-live requires exchange.rest_base_url to point to Binance Futures testnet")
+
         if self.run_mode == "live":
             missing = [name for name in ("api_key", "api_secret") if not getattr(self.exchange, name)]
             if missing:
                 raise ValueError("Live mode requires exchange.api_key and exchange.api_secret to be set")
             if self.exchange.use_testnet:
                 raise ValueError("Live mode requires exchange.use_testnet to be False")
+            if not any(host in rest_url for host in mainnet_hosts) or any(host in rest_url for host in demo_hosts):
+                raise ValueError("Live mode requires exchange.rest_base_url to target Binance Futures mainnet")
         return self

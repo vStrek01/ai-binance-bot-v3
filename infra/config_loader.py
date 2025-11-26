@@ -7,6 +7,13 @@ from pydantic import ValidationError
 
 from infra.config_schema import AppConfig, RunMode
 
+DEMO_REST_BASE_URL = "https://demo-fapi.binance.com"
+DEMO_WS_MARKET_URL = "wss://fstream.binancefuture.com"
+DEMO_WS_USER_URL = "wss://fstream.binancefuture.com/ws"
+MAINNET_REST_BASE_URL = "https://fapi.binance.com"
+MAINNET_WS_MARKET_URL = "wss://fstream.binance.com"
+MAINNET_WS_USER_URL = "wss://fstream.binance.com/ws"
+
 
 class ConfigError(RuntimeError):
     """Raised when configuration or environment validation fails."""
@@ -19,6 +26,7 @@ def load_config(path: str = "config.yaml", *, mode_override: str | None = None) 
     file_config = _read_config_file(path)
     run_mode = _resolve_run_mode(file_config.get("run_mode"), mode_override)
     merged = _merge_dicts(file_config, _build_env_overrides(run_mode, file_config.get("exchange")))
+    _apply_mode_defaults(merged, run_mode)
     merged["run_mode"] = run_mode
 
     try:
@@ -77,14 +85,20 @@ def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, 
 
     api_key = _strip_env_var("BINANCE_API_KEY")
     api_secret = _strip_env_var("BINANCE_API_SECRET")
-    base_url = _strip_env_var("BINANCE_BASE_URL")
+    base_url = _strip_env_var("BINANCE_REST_URL") or _strip_env_var("BINANCE_BASE_URL")
+    ws_market_url = _strip_env_var("BINANCE_WS_MARKET_URL")
+    ws_user_url = _strip_env_var("BINANCE_WS_USER_URL")
 
     if api_key is not None:
         exchange_override["api_key"] = api_key
     if api_secret is not None:
         exchange_override["api_secret"] = api_secret
     if base_url is not None:
-        exchange_override["base_url"] = base_url
+        exchange_override["rest_base_url"] = base_url
+    if ws_market_url is not None:
+        exchange_override["ws_market_url"] = ws_market_url
+    if ws_user_url is not None:
+        exchange_override["ws_user_url"] = ws_user_url
 
     explicit_testnet = os.getenv("BINANCE_TESTNET")
     alias_testnet = os.getenv("BOT_USE_TESTNET")
@@ -101,6 +115,24 @@ def _build_env_overrides(run_mode: RunMode, exchange_section: Any) -> Dict[str, 
         overrides["exchange"] = exchange_override
 
     return overrides
+
+
+def _apply_mode_defaults(config: Dict[str, Any], run_mode: RunMode) -> None:
+    exchange = config.setdefault("exchange", {})
+
+    if run_mode == "demo-live":
+        exchange.setdefault("use_testnet", True)
+        exchange.setdefault("rest_base_url", DEMO_REST_BASE_URL)
+        exchange.setdefault("ws_market_url", DEMO_WS_MARKET_URL)
+        exchange.setdefault("ws_user_url", DEMO_WS_USER_URL)
+    else:
+        exchange.setdefault("rest_base_url", MAINNET_REST_BASE_URL)
+        exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)
+        exchange.setdefault("ws_user_url", MAINNET_WS_USER_URL)
+
+    if run_mode == "live":
+        exchange.setdefault("rest_base_url", MAINNET_REST_BASE_URL)
+        exchange.setdefault("ws_market_url", MAINNET_WS_MARKET_URL)
 
 
 def _strip_env_var(name: str) -> str | None:

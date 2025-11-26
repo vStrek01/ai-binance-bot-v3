@@ -12,15 +12,16 @@ from infra.logging import logger
 
 
 class BinanceStream:
-    def __init__(self, symbol: str, interval: str = "1m", testnet: bool = True):
+    def __init__(self, symbol: str, interval: str = "1m", testnet: bool = True, ws_url: Optional[str] = None):
         self.symbol = symbol.upper()
         self.interval = interval
         self.testnet = testnet
-        self.ws_url = (
+        default_url = (
             f"wss://fstream.binance.com/stream?streams={self.symbol.lower()}@kline_{self.interval}"
             if not testnet
             else f"wss://stream.binancefuture.com/stream?streams={self.symbol.lower()}@kline_{self.interval}"
         )
+        self.ws_url = ws_url or default_url
         self.history: List[Candle] = []
 
     async def candle_stream(self) -> AsyncGenerator[Optional[Candle], None]:

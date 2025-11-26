@@ -42,6 +42,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         client: ExchangeClient,
         portfolio_meta: Optional[Dict[str, Any]] = None,
         learning_store: Optional[TradeLearningStore] = None,
+        mode_label: str = "live",
     ) -> None:
         self._config = cfg
         self.client = client
@@ -70,7 +71,7 @@ class LiveTrader(MultiSymbolRunnerBase):
             markets,
             exchange_info,
             cfg,
-            mode_label="live",
+            mode_label=mode_label,
             portfolio_meta=portfolio_meta,
             initial_balance=initial_balance,
             status_via_exchange=True,

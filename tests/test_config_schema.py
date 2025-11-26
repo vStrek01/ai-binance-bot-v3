@@ -16,7 +16,7 @@ def _build_valid_app_config(**overrides: Any) -> AppConfig:
             max_notional_per_symbol=2_500.0,
             max_notional_global=10_000.0,
         ),
-        "exchange": ExchangeConfig(base_url="https://testnet.binancefuture.com"),
+        "exchange": ExchangeConfig(rest_base_url="https://testnet.binancefuture.com"),
         "strategy": StrategyConfig(
             ema_fast=8,
             ema_slow=34,
@@ -81,4 +81,42 @@ def test_invalid_strategy_params_raise() -> None:
             rsi_oversold=40,
             atr_length=14,
             atr_multiplier=1.5,
+        )
+
+
+def test_demo_live_requires_testnet_urls() -> None:
+    cfg = _build_valid_app_config(
+        run_mode="demo-live",
+        exchange=ExchangeConfig(
+            use_testnet=True,
+            rest_base_url="https://demo-fapi.binance.com",
+            ws_market_url="wss://fstream.binancefuture.com",
+            ws_user_url="wss://fstream.binancefuture.com/ws",
+        ),
+    )
+    assert cfg.exchange.use_testnet is True
+    assert "demo" in cfg.exchange.rest_base_url
+
+
+def test_demo_live_rejects_mainnet_urls() -> None:
+    with pytest.raises(ValidationError, match="testnet"):
+        _build_valid_app_config(
+            run_mode="demo-live",
+            exchange=ExchangeConfig(
+                use_testnet=True,
+                rest_base_url="https://fapi.binance.com",
+            ),
+        )
+
+
+def test_live_mode_rejects_demo_urls() -> None:
+    with pytest.raises(ValidationError, match="mainnet"):
+        _build_valid_app_config(
+            run_mode="live",
+            exchange=ExchangeConfig(
+                api_key="k",
+                api_secret="s",
+                use_testnet=False,
+                rest_base_url="https://demo-fapi.binance.com",
+            ),
         )

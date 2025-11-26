@@ -15,10 +15,19 @@ class BinanceClient:
     MAINNET = "https://fapi.binance.com"
     TESTNET = "https://testnet.binancefuture.com"
 
-    def __init__(self, api_key: str, api_secret: str, testnet: bool = True, recv_window: int = 5000):
+    def __init__(
+        self,
+        api_key: str,
+        api_secret: str,
+        *,
+        base_url: Optional[str] = None,
+        testnet: bool = True,
+        recv_window: int = 5000,
+    ) -> None:
         self.api_key = api_key
         self.api_secret = api_secret.encode()
-        self.base_url = self.TESTNET if testnet else self.MAINNET
+        fallback = self.TESTNET if testnet else self.MAINNET
+        self.base_url = (base_url or fallback).rstrip("/")
         self.recv_window = recv_window
 
     def _timestamp(self) -> int:

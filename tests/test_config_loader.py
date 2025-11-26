@@ -67,3 +67,12 @@ def test_invalid_testnet_flag_raises(monkeypatch: MonkeyPatch, tmp_path: Path) -
 
     with pytest.raises(ConfigError, match="Boolean env vars"):
         load_config(path=str(tmp_path / "missing.yaml"))
+
+
+def test_demo_live_defaults_to_testnet_urls(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("RUN_MODE", "demo-live")
+    cfg = load_config(path=str(tmp_path / "missing.yaml"))
+
+    assert cfg.exchange.use_testnet is True
+    assert cfg.exchange.rest_base_url == "https://demo-fapi.binance.com"
+    assert "binancefuture" in cfg.exchange.ws_market_url

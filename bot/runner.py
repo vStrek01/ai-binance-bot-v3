@@ -527,6 +527,21 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
             "Live trading is disabled. Set runtime.live_trading = True or export BOT_ENABLE_DEMO_LIVE=1 "
             "to acknowledge the risk before running."
         )
+    if not cfg.runtime.use_testnet:
+        raise RuntimeError(
+            "Demo-live mode requires runtime.use_testnet=True so orders stay on the Futures Testnet."
+            " Set BOT_USE_TESTNET=1 or adjust your config before retrying."
+        )
+    base_url = cfg.runtime.testnet_base_url.strip()
+    if base_url.lower().endswith("fapi.binance.com") and "demo" not in base_url.lower() and "testnet" not in base_url.lower():
+        raise RuntimeError(
+            "Demo-live cannot target Binance mainnet endpoints. Configure BOT_TESTNET_BASE_URL"
+            " with the demo-fapi or testnet URL."
+        )
+    logger.info(
+        "RUN_MODE=demo-live (Binance Futures Testnet) | rest_base=%s",
+        base_url,
+    )
     trading_client = build_trading_client(cfg)
     exchange = ExchangeInfoManager(cfg, client=trading_client)
     exchange.refresh(force=True)
@@ -548,6 +563,7 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
         client=trading_client,
         portfolio_meta=portfolio_meta,
         learning_store=learning_store,
+        mode_label="demo-live",
     )
     asyncio.run(runner.run())
 

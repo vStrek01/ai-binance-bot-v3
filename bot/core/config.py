@@ -156,7 +156,7 @@ class RuntimeConfig:
     paper_account_balance: float = 1_000.0
     top_symbols: int = 5
     portfolio_metric: str = "profit_factor"
-    testnet_base_url: str = "https://testnet.binancefuture.com"
+    testnet_base_url: str = "https://demo-fapi.binance.com"
     live_base_url: str = "https://fapi.binance.com"
     demo_account_asset: str = "USDT"
     balance_refresh_seconds: int = 30

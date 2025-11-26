@@ -6,6 +6,7 @@ from typing import Any, cast
 
 import pytest
 
+import bot.execution.client_factory as client_factory
 import bot.execution.live as live_mod
 import bot.runner as runner_mod
 from bot.core.config import load_config
@@ -107,3 +108,46 @@ def test_learning_store_helper_obeys_runtime_flag(monkeypatch: pytest.MonkeyPatc
     assert live_mod.resolve_learning_store(cfg_on, None) is sentinel
     provided = cast(TradeLearningStore, sentinel)
     assert live_mod.resolve_learning_store(cfg_on, provided) is provided
+
+def test_demo_live_profile_uses_testnet_without_confirmation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = load_config(base_dir=tmp_path)
+    cfg = replace(
+        cfg,
+        runtime=replace(
+            cfg.runtime,
+            dry_run=False,
+            use_testnet=True,
+            live_trading=True,
+        ),
+    )
+
+    def _fail(_runtime: Any) -> None:
+        raise AssertionError("Live confirmation should not run for testnet/demo-live profiles")
+
+    monkeypatch.setattr(client_factory, "_ensure_live_confirmation", _fail)
+
+    profile = client_factory._determine_trading_profile(cfg)
+    assert profile.label == "testnet"
+
+
+def test_live_profile_enforces_confirmation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    cfg = load_config(base_dir=tmp_path)
+    cfg = replace(
+        cfg,
+        runtime=replace(
+            cfg.runtime,
+            dry_run=False,
+            use_testnet=False,
+            live_trading=True,
+        ),
+    )
+    called = False
+
+    def _mark(_runtime: Any) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(client_factory, "_ensure_live_confirmation", _mark)
+    profile = client_factory._determine_trading_profile(cfg)
+    assert profile.label == "live"
+    assert called is True
