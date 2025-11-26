@@ -40,6 +40,17 @@ BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runn
 ```
 Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
+## Dependencies & CI
+- Runtime packages live in `requirements.in`; dev tooling goes into `requirements-dev.in`, which already includes `-r requirements.in` so you only list the extras.
+- After editing either `.in` file, regenerate the lockfiles locally with:
+
+```bash
+pip-compile requirements.in -o requirements.txt
+pip-compile requirements-dev.in -o requirements-dev.txt
+```
+
+- The GitHub Actions workflow installs from `requirements-dev.txt` (compiling it on the fly if the file is empty) before running `pytest`, so keep that lock committed to benefit from pip caching.
+
 ## Testing
 ```bash
 pytest

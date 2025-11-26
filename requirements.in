@@ -1,0 +1,13 @@
+# Runtime dependencies are intentionally unpinned; run pip-compile to lock versions.
+binance-futures-connector
+fastapi
+httpx
+numpy
+pandas
+pydantic
+python-dotenv
+PyYAML
+requests
+torch
+uvicorn
+websockets
