@@ -1,4 +1,5 @@
 """Neural network building blocks for RL agents."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 try:

@@ -1,4 +1,5 @@
 """Parameter search utility for the EMA/RSI/ATR strategy."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 import itertools

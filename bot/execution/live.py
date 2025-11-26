@@ -23,6 +23,14 @@ from bot.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def resolve_learning_store(cfg: BotConfig, store: Optional[TradeLearningStore]) -> Optional[TradeLearningStore]:
+    if not cfg.runtime.use_learning_store:
+        return None
+    if store is not None:
+        return store
+    return TradeLearningStore(cfg)
+
+
 class LiveTrader(MultiSymbolRunnerBase):
 
     def __init__(
@@ -39,7 +47,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         self.client = client
         self.order_logger = OrderAuditLogger(cfg)
         self.trade_logger = LiveTradeLogger(cfg)
-        self.learning_store = learning_store or TradeLearningStore(cfg)
+        self.learning_store = resolve_learning_store(cfg, learning_store)
         self._applied_learning: Dict[str, Dict[str, Any]] = {}
         self._last_trade_refresh = 0.0
         self._last_position_snapshot: List[Dict[str, Any]] = []
@@ -261,12 +269,15 @@ class LiveTrader(MultiSymbolRunnerBase):
 
     def _after_trade_closed(self, ctx: MarketContext, trade_payload: Dict[str, Any]) -> None:
         self.trade_logger.log(trade_payload)
-        self.learning_store.record_trade(trade_payload, ctx.params)
+        if self.learning_store is not None:
+            self.learning_store.record_trade(trade_payload, ctx.params)
         exit_order_id = self._int_or_none(trade_payload.get("exit_order_id"))
         if exit_order_id is not None:
             self._synced_order_ids.add(exit_order_id)
 
     def _apply_learned_parameters(self) -> None:
+        if self.learning_store is None:
+            return
         for ctx in self.contexts:
             overrides = self.learning_store.best_params(ctx.symbol, ctx.timeframe)
             if not overrides:

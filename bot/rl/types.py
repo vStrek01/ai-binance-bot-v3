@@ -1,4 +1,5 @@
 """Typed metadata structures for RL training runs and policy versions."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 import dataclasses

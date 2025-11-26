@@ -1,4 +1,5 @@
-const STATE_URL = "../logs/dashboard_state.json";
+const STATE_URL = "/api/dashboard/state";
+const EVENT_LIMIT = 25;
 const REFRESH_MS = 5000;
 
 const equityValueEl = document.getElementById("equityValue");
@@ -92,7 +93,7 @@ function renderEvents(events) {
 
 async function fetchState() {
   try {
-    const response = await fetch(`${STATE_URL}?t=${Date.now()}`);
+    const response = await fetch(`${STATE_URL}?limit=${EVENT_LIMIT}&t=${Date.now()}`);
     if (!response.ok) {
       throw new Error(`Telemetry fetch failed with status ${response.status}`);
     }

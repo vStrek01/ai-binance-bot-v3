@@ -121,6 +121,8 @@ class TradingEngine:
         return runner.run(list(candles))
 
     def _kill_switch_active(self) -> bool:
+        if self.kill_switch_engaged:
+            return True
         if self.safety_limits is None:
             return False
         safety_state = self._build_safety_state()

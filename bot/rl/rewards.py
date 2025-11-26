@@ -1,4 +1,5 @@
 """Reward shaping functions for the RL trainer."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 from typing import Callable, Dict

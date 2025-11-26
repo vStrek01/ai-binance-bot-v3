@@ -43,6 +43,9 @@ class BacktestRunner:
         initial_equity: float = 10_000,
         safety_limits: SafetyLimits | None = None,
         run_mode: str = "backtest",
+        *,
+        spread: float = 0.5,
+        slippage: float | None = None,
     ):
         self.strategy = strategy
         self.risk_manager = risk_manager
@@ -53,8 +56,8 @@ class BacktestRunner:
         self.position_manager.equity = initial_equity
         self.exchange = SimulatedExchange(
             self.position_manager,
-            spread=0.5,
-            slippage=risk_manager.config.slippage,
+            spread=spread,
+            slippage=risk_manager.config.slippage if slippage is None else slippage,
         )
         self.safety_limits = safety_limits
         self.kill_switch_engaged = False
@@ -202,6 +205,8 @@ class BacktestRunner:
         return {"equity_curve": equity_curve, "metrics": metrics, "trades": trade_pnls, "summary": summary}
 
     def _kill_switch_active(self) -> bool:
+        if self.kill_switch_engaged:
+            return True
         if self.safety_limits is None:
             return False
         state = SafetyState(

@@ -1,9 +1,9 @@
-"""Offline evaluator comparing baseline vs LLM strategy modes using the shared backtester.
+"""EXPERIMENTAL: Offline evaluator comparing baseline vs LLM strategy modes.
 
 Example:
     # PowerShell
     .\.venv\Scripts\Activate.ps1
-    python -m tools.eval_llm_vs_baseline --data-path data/BTCUSDT_1m.csv --symbol BTCUSDT --max-rows 2000
+    python -m experimental.eval_llm_vs_baseline --data-path data/BTCUSDT_1m.csv --symbol BTCUSDT --max-rows 2000
 """
 
 from __future__ import annotations

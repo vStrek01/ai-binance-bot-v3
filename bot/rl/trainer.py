@@ -1,4 +1,5 @@
 """Training orchestration for the futures RL environment."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 import json

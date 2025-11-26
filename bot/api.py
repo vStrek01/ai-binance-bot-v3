@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +15,7 @@ from websockets.exceptions import ConnectionClosedOK
 
 from bot.status import status_store
 from bot.utils.logger import get_logger
+import infra.logging as logging_utils
 
 logger = get_logger(__name__)
 
@@ -22,6 +23,13 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = BASE_DIR / "frontend"
 FRONTEND_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_FILE = FRONTEND_DIR / "index.html"
+LOCAL_ORIGINS = [
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+    "http://localhost",
+    "http://localhost:8000",
+]
+MAX_EVENT_LIMIT = 200
 
 
 class NoCacheStaticFiles(StaticFiles):
@@ -39,7 +47,7 @@ class NoCacheStaticFiles(StaticFiles):
 app = FastAPI(title="AI Binance Bot v3 Dashboard", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=LOCAL_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -60,6 +68,43 @@ async def dashboard_root() -> HTMLResponse:
 @app.get("/api/status")
 async def api_status() -> Dict[str, Any]:
     return status_store.snapshot()
+
+
+def _sanitize_limit(limit: int) -> int:
+    if limit <= 0:
+        return 1
+    return min(limit, MAX_EVENT_LIMIT)
+
+
+def _build_dashboard_state(limit: int) -> Dict[str, Any]:
+    sanitized = _sanitize_limit(limit)
+    return {
+        "equity": logging_utils.get_equity_snapshot(),
+        "positions": logging_utils.get_open_positions(),
+        "recent_events": logging_utils.get_recent_events(limit=sanitized),
+        "limit": sanitized,
+    }
+
+
+@app.get("/api/dashboard/state")
+async def api_dashboard_state(limit: int = 25) -> Dict[str, Any]:
+    return _build_dashboard_state(limit)
+
+
+@app.get("/api/dashboard/equity")
+async def api_dashboard_equity() -> Dict[str, Optional[Dict[str, Any]]]:
+    return {"equity": logging_utils.get_equity_snapshot()}
+
+
+@app.get("/api/dashboard/positions")
+async def api_dashboard_positions() -> Dict[str, List[Dict[str, Any]]]:
+    return {"positions": logging_utils.get_open_positions()}
+
+
+@app.get("/api/dashboard/events")
+async def api_dashboard_events(limit: int = 25) -> Dict[str, Any]:
+    sanitized = _sanitize_limit(limit)
+    return {"events": logging_utils.get_recent_events(limit=sanitized), "limit": sanitized}
 
 
 @app.websocket("/ws/status")

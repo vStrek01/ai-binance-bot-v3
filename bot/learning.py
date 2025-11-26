@@ -1,4 +1,5 @@
 """Lightweight learning loop that adapts parameters from live trades."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 import json

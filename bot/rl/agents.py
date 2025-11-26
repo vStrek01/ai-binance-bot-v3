@@ -1,4 +1,5 @@
 """Actor-critic agent used by the RL trainer."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 from pathlib import Path

@@ -8,7 +8,7 @@ exchange/          # Binance REST + websockets + order routing
 core/              # Models, strategy, LLM adapter, risk, state, trading engine
 backtest/          # Execution simulator, runner, metrics
 infra/             # Config loader, structured logging, persistence helpers
-main.py            # CLI entrypoint (backtest by default)
+bot/runner.py      # Unified CLI (download/backtest/optimize/dry-run/live/api)
 ```
 
 Pipeline: **DATA → STRATEGY → LLM (optional) → RISK → ORDER → EXECUTION → STATE**
@@ -24,21 +24,21 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Run a sample backtest (synthetic candles):
+Run a sample backtest (core engine on cached data):
 ```bash
-python main.py --mode backtest
+python -m bot.runner backtest --symbol BTCUSDT --interval 1m
 ```
 
-Run paper or live on Binance (testnet by default):
+Paper trading on the Binance testnet (uses the same strategy + risk stack):
 ```bash
-# Paper
-RUN_MODE=paper BINANCE_API_KEY=... BINANCE_API_SECRET=... python main.py --mode paper
-
-# Live (requires explicit confirms + live_trading_enabled: true)
-RUN_MODE=live BINANCE_API_KEY=... BINANCE_API_SECRET=... BINANCE_TESTNET=0 \
-	CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python main.py --mode live
+python -m bot.runner dry-run --symbol BTCUSDT --interval 1m
 ```
-Live trading requires `live_trading_enabled: true` in `config.yaml`; otherwise the process exits. Never disable `BINANCE_TESTNET` unless you fully understand the risk.
+
+Demo/live trading on the Binance testnet (requires `BOT_LIVE_TRADING=1` and explicit confirmation envs from your config):
+```bash
+BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runner demo-live --symbol BTCUSDT --interval 1m
+```
+Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
 ## Testing
 ```bash
@@ -49,5 +49,13 @@ Backtest results are persisted under `data/results/` with equity curves and metr
 
 ## Observability
 
-- `infra/logging.py` exposes `setup_logging()` and `log_event()` so every subsystem emits JSON log lines. Events now cover order lifecycle, position opens/closes, equity snapshots, kill-switch triggers, LLM parse issues, and backtest summaries. Logs stream to stdout by default and (when run via `main.py`) also mirror to `logs/bot.log` plus `logs/dashboard_state.json` for lightweight telemetry.
-- `frontend/dashboard.html` + `dashboard.js` render a minimal dashboard that polls `logs/dashboard_state.json` for the latest equity snapshot, open positions, and recent events. Serve `frontend/` via any static host (e.g. `python -m http.server 9000`) or open the HTML file directly when running locally.
+- `infra/logging.py` now exposes helper accessors (`get_recent_events`, `get_open_positions`, `get_equity_snapshot`) in addition to `setup_logging()`/`log_event()`. Every order/position/equity/killswitch/backtest event is emitted as JSON to stdout and (when configured) mirrored to `logs/dashboard_state.json`.
+- `bot.api` surfaces the telemetry over FastAPI: `/api/dashboard/state` returns equity + open positions + recent events while `/api/dashboard/{equity,positions,events}` provide focused slices. The server only listens on `127.0.0.1` unless you override `BOT_API_HOST`.
+- `frontend/dashboard.html` + `dashboard.js` now call `/api/dashboard/state`, so serving `frontend/` via `uvicorn bot.api:app --host 127.0.0.1 --port 8000` instantly shows live equity, positions, and recent trades/killswitch events.
+- `tools/tail_logs.py` is a lightweight terminal monitor: `python -m tools.tail_logs --interval 1.5` polls the same API endpoint (or `--source local` to read in-process helpers) and prints fresh equity snapshots, open-position deltas, and notable events.
+
+## Experimental & credential stubs
+
+- Anything under `experimental/` (for example `experimental.eval_llm_vs_baseline`) is unsupported and excluded from the production CLI. Run such scripts explicitly via `python -m experimental.<name>`.
+- The old `keys_example.py` now lives under `docs/keys_example.py` with a DO NOT IMPORT warning so contributors know which environment variables to configure without risking accidental imports in production code.
+- Reinforcement-learning checkpoints/results (`data/rl_checkpoints/`, `data/rl_runs/`) are ignored in git—rerun `python -m bot.runner train-rl ...` to generate your own artifacts locally.

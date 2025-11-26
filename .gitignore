@@ -18,10 +18,13 @@ ENV/
 logs/
 results/
 optimization_results/
+data/rl_checkpoints/
+data/rl_runs/
 tmp/
 temp/
 *.log
 *.csv
+*.pt
 
 # OS artifacts
 .DS_Store

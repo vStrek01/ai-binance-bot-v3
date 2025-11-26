@@ -13,6 +13,7 @@ def clear_env(monkeypatch: MonkeyPatch) -> None:
         "BINANCE_API_KEY",
         "BINANCE_API_SECRET",
         "BINANCE_TESTNET",
+        "BOT_USE_TESTNET",
         "CONFIRM_LIVE",
     ]:
         monkeypatch.delenv(key, raising=False)
@@ -60,6 +61,57 @@ def test_paper_mode_requires_keys_and_testnet(monkeypatch: MonkeyPatch, tmp_path
         loader.load()
 
 
+def test_paper_mode_accepts_testnet_with_all_credentials(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    loader = ConfigLoader(path=str(tmp_path / "config.yaml"))
+
+    monkeypatch.setenv("RUN_MODE", "paper")
+    monkeypatch.setenv("BINANCE_API_KEY", "key")
+    monkeypatch.setenv("BINANCE_API_SECRET", "secret")
+    monkeypatch.setenv("BINANCE_TESTNET", "1")
+
+    config = loader.load()
+    assert config["binance"]["testnet"] is True
+
+
+def test_backtest_mode_needs_no_credentials(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    loader = ConfigLoader(path=str(tmp_path / "missing.yaml"))
+
+    monkeypatch.setenv("RUN_MODE", "backtest")
+
+    config = loader.load()
+    assert config["mode_flags"] == {"backtest": True, "paper": False, "live": False}
+    assert config["binance"]["api_key"] == ""
+    assert config["binance"]["api_secret"] == ""
+
+
+def test_live_mode_requires_api_keys(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("live_trading_enabled: true\n", encoding="utf-8")
+
+    loader = ConfigLoader(path=str(config_path))
+    monkeypatch.setenv("RUN_MODE", "live")
+    monkeypatch.setenv("BINANCE_TESTNET", "0")
+    monkeypatch.setenv("CONFIRM_LIVE", "YES_I_UNDERSTAND_THE_RISK")
+
+    with pytest.raises(ConfigError, match="BINANCE_API_KEY"):
+        loader.load()
+
+
+def test_live_mode_requires_confirmation(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("live_trading_enabled: true\n", encoding="utf-8")
+
+    loader = ConfigLoader(path=str(config_path))
+
+    monkeypatch.setenv("RUN_MODE", "live")
+    monkeypatch.setenv("BINANCE_API_KEY", "key")
+    monkeypatch.setenv("BINANCE_API_SECRET", "secret")
+    monkeypatch.setenv("BINANCE_TESTNET", "0")
+
+    with pytest.raises(ConfigError, match="CONFIRM_LIVE"):
+        loader.load()
+
+
 def test_live_mode_enforces_all_gates(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     config_path.write_text("live_trading_enabled: true\n", encoding="utf-8")
@@ -88,3 +140,20 @@ def test_live_mode_enforces_all_gates(monkeypatch: MonkeyPatch, tmp_path: Path) 
 
     assert config["run_mode"] == "live"
     assert config["binance"]["testnet"] is False
+
+
+def test_live_mode_rejects_testnet_alias(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("live_trading_enabled: true\n", encoding="utf-8")
+
+    loader = ConfigLoader(path=str(config_path))
+
+    monkeypatch.setenv("RUN_MODE", "live")
+    monkeypatch.setenv("BINANCE_API_KEY", "key")
+    monkeypatch.setenv("BINANCE_API_SECRET", "secret")
+    monkeypatch.delenv("BINANCE_TESTNET", raising=False)
+    monkeypatch.setenv("BOT_USE_TESTNET", "1")
+    monkeypatch.setenv("CONFIRM_LIVE", "YES_I_UNDERSTAND_THE_RISK")
+
+    with pytest.raises(ConfigError, match="BINANCE_TESTNET=0"):
+        loader.load()

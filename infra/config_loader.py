@@ -69,7 +69,10 @@ class ConfigLoader:
         api_key = os.getenv("BINANCE_API_KEY", "").strip()
         api_secret = os.getenv("BINANCE_API_SECRET", "").strip()
         default_testnet = run_mode != "live"
-        is_testnet = self._parse_testnet_flag(os.getenv("BINANCE_TESTNET"), default_testnet)
+        explicit_testnet = os.getenv("BINANCE_TESTNET")
+        alias_testnet = os.getenv("BOT_USE_TESTNET")
+        raw_testnet_flag = explicit_testnet if explicit_testnet not in {None, ""} else alias_testnet
+        is_testnet = self._parse_testnet_flag(raw_testnet_flag, default_testnet)
 
         if run_mode in {"paper", "live"}:
             if not api_key or not api_secret:

@@ -162,6 +162,8 @@ class RuntimeConfig:
     balance_refresh_seconds: int = 30
     learning_window: int = 50
     use_rl_policy: bool = False
+    use_optimizer_output: bool = False
+    use_learning_store: bool = False
     max_margin_utilization: float = 0.9
     api_host: str = "127.0.0.1"
     api_port: int = 8000
@@ -361,6 +363,8 @@ def load_config(*, base_dir: Path | None = None) -> BotConfig:
         balance_refresh_seconds=_env_int("BOT_BALANCE_REFRESH_SECONDS", runtime_default.balance_refresh_seconds),
         learning_window=_env_int("BOT_LEARNING_WINDOW", runtime_default.learning_window),
         use_rl_policy=_env_bool("BOT_USE_RL_POLICY", runtime_default.use_rl_policy),
+        use_optimizer_output=_env_bool("BOT_USE_OPTIMIZER_OUTPUT", runtime_default.use_optimizer_output),
+        use_learning_store=_env_bool("BOT_USE_LEARNING_STORE", runtime_default.use_learning_store),
         max_margin_utilization=_env_float("BOT_MAX_MARGIN_UTILIZATION", runtime_default.max_margin_utilization),
         api_host=_env_str("BOT_API_HOST", runtime_default.api_host),
         api_port=_env_int("BOT_API_PORT", runtime_default.api_port),

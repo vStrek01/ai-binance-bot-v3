@@ -1,10 +1,10 @@
 """Reinforcement-learning environment for perpetual futures trading."""
+# EXPERIMENTAL — DO NOT ENABLE FOR LIVE TRADING WITHOUT SEPARATE VALIDATION.
 from __future__ import annotations
 
 import random
 from dataclasses import dataclass
 from typing import Dict, Tuple
-
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray

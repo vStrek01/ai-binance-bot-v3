@@ -7,7 +7,7 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 _LOGGER_NAME = os.getenv("LOG_NAME", "ai_binance_bot")
 logger = logging.getLogger(_LOGGER_NAME)
@@ -92,6 +92,7 @@ def _update_state(payload: Dict[str, Any]) -> None:
             "ORDER_CANCELLED",
             "POSITION_OPENED",
             "POSITION_CLOSED",
+            "EQUITY_SNAPSHOT",
             "KILL_SWITCH_TRIGGERED",
             "LLM_INVALID_OUTPUT",
             "BACKTEST_SUMMARY",
@@ -129,8 +130,31 @@ def _record_position(payload: Dict[str, Any]) -> None:
         _positions[symbol] = position
 
 
+def get_recent_events(*, limit: int = 10) -> List[Dict[str, Any]]:
+    with _state_lock:
+        return list(list(_recent_events)[:limit])
+
+
+def get_open_positions() -> List[Dict[str, Any]]:
+    with _state_lock:
+        return list(_positions.values())
+
+
+def get_equity_snapshot() -> Optional[Dict[str, Any]]:
+    with _state_lock:
+        return dict(_equity_snapshot) if _equity_snapshot else None
+
+
 default_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
 default_level = getattr(logging, default_level_name, logging.INFO)
 setup_logging(default_level)
 
-__all__ = ["logger", "setup_logging", "log_event", "bind_log_context"]
+__all__ = [
+    "logger",
+    "setup_logging",
+    "log_event",
+    "bind_log_context",
+    "get_recent_events",
+    "get_open_positions",
+    "get_equity_snapshot",
+]

@@ -73,7 +73,7 @@ def _report_rl_state(
             "timeframe": interval,
         }
     )
-def _policy_guardrails(
+def policy_guardrails(
     cfg: BotConfig,
     *,
     baseline_hash: str,
@@ -93,7 +93,7 @@ def _policy_guardrails(
     return True, ""
 
 
-def _load_rl_overrides(
+def load_rl_overrides(
     cfg: BotConfig,
     symbol: str,
     interval: str,
@@ -149,7 +149,7 @@ def _load_rl_overrides(
         return None
     params, version, _run_metadata = payload
     baseline_hash = compute_baseline_hash(cfg.strategy.default_parameters)
-    allowed, reason = _policy_guardrails(
+    allowed, reason = policy_guardrails(
         cfg,
         baseline_hash=baseline_hash,
         policy_baseline_hash=version.baseline_params_hash,
@@ -239,7 +239,7 @@ def _resolve_strategy_overrides(
     allow_rl = cfg.rl.enabled and cfg.runtime.use_rl_policy
     if rl_context == "live" and not cfg.rl.apply_to_live:
         allow_rl = False
-    overrides: Optional[Dict[str, float]] = _load_rl_overrides(
+    overrides: Optional[Dict[str, float]] = load_rl_overrides(
         cfg,
         symbol,
         interval,
@@ -248,7 +248,10 @@ def _resolve_strategy_overrides(
     )
     if overrides is not None:
         return overrides, "rl_override"
-    if use_best:
+    allow_best = use_best and cfg.runtime.use_optimizer_output
+    if use_best and not cfg.runtime.use_optimizer_output:
+        logger.info("Optimizer overrides disabled via BOT_USE_OPTIMIZER_OUTPUT=0")
+    if allow_best:
         optimized = load_best_params(cfg, symbol, interval)
         if optimized:
             return optimized, "optimized"
@@ -268,7 +271,7 @@ def _build_strategy_params(
     return build_parameters(cfg, overrides)
 
 
-def _build_strategy_params_with_meta(
+def build_strategy_params_with_meta(
     cfg: BotConfig,
     symbol: str,
     interval: str,
@@ -283,7 +286,7 @@ def _build_strategy_params_with_meta(
 
 
 def cmd_backtest(cfg: BotConfig, args: argparse.Namespace) -> None:
-    params, _override_payload, params_source = _build_strategy_params_with_meta(
+    params, _override_payload, params_source = build_strategy_params_with_meta(
         cfg,
         args.symbol,
         args.interval,
@@ -537,13 +540,14 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
         "timeframe": args.interval,
         "metric": "demo_live",
     }
+    learning_store = TradeLearningStore(cfg) if cfg.runtime.use_learning_store else None
     runner = LiveTrader(
         markets,
         exchange,
         cfg,
         client=trading_client,
         portfolio_meta=portfolio_meta,
-        learning_store=TradeLearningStore(cfg),
+        learning_store=learning_store,
     )
     asyncio.run(runner.run())
 
