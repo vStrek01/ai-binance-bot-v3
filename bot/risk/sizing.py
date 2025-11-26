@@ -48,9 +48,8 @@ class PositionSizer:
     def plan_trade(self, ctx: SizingContext, engine: Optional[RiskEngine] = None) -> SizingResult:
         if ctx.price <= 0:
             return SizingResult(0.0, 0.0, True, "invalid_price", False)
-        risk_cfg = self._config.risk
-        if risk_cfg.max_concurrent_symbols > 0 and not ctx.symbol_already_active:
-            if ctx.active_symbols >= risk_cfg.max_concurrent_symbols:
+        if self._config.risk.max_concurrent_symbols > 0 and not ctx.symbol_already_active:
+            if ctx.active_symbols >= self._config.risk.max_concurrent_symbols:
                 return SizingResult(0.0, 0.0, True, "max_symbols", False)
         quantity = self._atr_position(ctx)
         if quantity <= 0:
@@ -97,9 +96,9 @@ class PositionSizer:
         capped = notional
         if ctx.max_notional and ctx.max_notional > 0:
             capped = min(capped, ctx.max_notional)
-        global_cap = self._config.sizing.max_notional
-        if global_cap and global_cap > 0:
-            capped = min(capped, global_cap)
+        max_notional_cfg = self._config.sizing.max_notional
+        if max_notional_cfg and max_notional_cfg > 0:
+            capped = min(capped, max_notional_cfg)
         if capped < self.min_notional:
             return 0.0
         return capped

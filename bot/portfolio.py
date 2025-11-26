@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, cast
+from typing import Any, Dict, List, Optional, Sequence, cast
 
-from bot import config
+from bot.core.config import BotConfig
 from bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -29,19 +29,22 @@ def _load_results(path: Path) -> List[ResultEntry]:
     return []
 
 
-def load_optimizer_results() -> List[ResultEntry]:
+def load_optimizer_results(cfg: BotConfig, *, path: Optional[Path] = None) -> List[ResultEntry]:
     """Load flattened optimizer output if available."""
-    path = config.OPTIMIZATION_DIR / "best_params.json"
-    return _load_results(path)
+    target = path or (cfg.paths.optimization_dir / "best_params.json")
+    return _load_results(target)
 
 
 def select_top_markets(
+    cfg: BotConfig,
     timeframe: str,
     top_n: int,
     metric: str,
+    *,
+    path: Optional[Path] = None,
 ) -> List[ResultEntry]:
     """Return optimizer entries ranked by the requested metric."""
-    results = load_optimizer_results()
+    results = load_optimizer_results(cfg, path=path)
     if not results:
         return []
     filtered: List[ResultEntry] = []

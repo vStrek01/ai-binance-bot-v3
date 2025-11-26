@@ -16,21 +16,24 @@ def _snapshot(obj: object) -> dict:
     raise TypeError(f"Cannot snapshot config object of type {type(obj)!r}")
 
 
+def _maybe_snapshot(name: str) -> tuple[str, dict] | None:
+    target = getattr(config, name, None)
+    if target is None:
+        return None
+    return name, _snapshot(target)
+
+
 @pytest.fixture(autouse=True)
 def restore_core_configs() -> Iterator[None]:
-    risk_snapshot = _snapshot(config.risk)
-    runtime_snapshot = _snapshot(config.runtime)
-    rl_snapshot = _snapshot(config.rl)
-    strategy_snapshot = _snapshot(config.strategy)
+    tracked = filter(None, (_maybe_snapshot(name) for name in ("risk", "runtime", "rl", "strategy")))
+    snapshots = {name: snapshot for name, snapshot in tracked}
     env_overrides = {"BOT_CONFIRM_LIVE": os.getenv("BOT_CONFIRM_LIVE")}
     yield
-    for snapshot, target in (
-        (risk_snapshot, config.risk),
-        (runtime_snapshot, config.runtime),
-        (rl_snapshot, config.rl),
-        (strategy_snapshot, config.strategy),
-    ):
-        for key, value in snapshot.items():
+    for name, payload in snapshots.items():
+        target = getattr(config, name, None)
+        if target is None:
+            continue
+        for key, value in payload.items():
             setattr(target, key, value)
     # Restore environment overrides that tests might tweak
     for key, value in env_overrides.items():

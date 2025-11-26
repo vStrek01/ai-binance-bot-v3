@@ -9,7 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from bot import config
+from bot.core.config import BotConfig, ensure_directories
 from bot.strategies import StrategyParameters
 from bot.utils.fileio import atomic_write_text
 from bot.utils.logger import get_logger
@@ -28,11 +28,18 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 class TradeLearningStore:
-    def __init__(self, path: Path | None = None, history_path: Path | None = None, window: int | None = None) -> None:
-        config.ensure_directories([config.OPTIMIZATION_DIR, config.LOG_DIR])
-        self.path = path or (config.OPTIMIZATION_DIR / "learned_params.json")
-        self.history_path = history_path or (config.LOG_DIR / "learned_trades.jsonl")
-        self.window = window or config.runtime.learning_window
+    def __init__(
+        self,
+        cfg: BotConfig,
+        path: Path | None = None,
+        history_path: Path | None = None,
+        window: int | None = None,
+    ) -> None:
+        ensure_directories(cfg.paths, extra=[cfg.paths.optimization_dir, cfg.paths.log_dir])
+        self._config = cfg
+        self.path = path or (cfg.paths.optimization_dir / "learned_params.json")
+        self.history_path = history_path or (cfg.paths.log_dir / "learned_trades.jsonl")
+        self.window = window or cfg.runtime.learning_window
         self._state: Dict[str, Dict[str, Dict[str, Any]]] = self._load_state()
 
     def _load_state(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
@@ -152,7 +159,7 @@ class TradeLearningStore:
         pnls = [_safe_float(t.get("pnl", 0.0)) for t in trades]
         stdev = statistics.pstdev(pnls) if len(pnls) > 1 else 0.0
         avg = statistics.mean(pnls)
-        if stdev > config.reinforcement.volatility_threshold:
+        if stdev > self._config.reinforcement.volatility_threshold:
             return "volatile_up" if avg > 0 else "volatile_down"
         if avg > 0:
             return "trend_up"
@@ -161,7 +168,7 @@ class TradeLearningStore:
         return "neutral"
 
     def _compute_reward(self, stats: Dict[str, float], market_state: Dict[str, Any]) -> float:
-        cfg = config.reinforcement
+        cfg = self._config.reinforcement
         avg_pnl = stats.get("avg_pnl", 0.0)
         mae = abs(stats.get("avg_mae", 1.0)) or 1.0
         norm = avg_pnl / mae
@@ -208,12 +215,12 @@ class TradeLearningStore:
         stats: Dict[str, float],
         market_state: Dict[str, Any],
     ) -> Dict[str, Any]:
-        cfg = config.reinforcement
+        cfg = self._config.reinforcement
         reward = market_state.get("reward", 0.0)
         regime = market_state.get("regime", "neutral")
         streak = market_state.get("streak", 0)
         updated = dict(params)
-        defaults = config.strategy.default_parameters
+        defaults = self._config.strategy.default_parameters
         def clamp(key: str, value: float, minimum: float, maximum: float) -> float:
             return max(minimum, min(maximum, value))
 

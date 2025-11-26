@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from bot.core import config
+from bot.core.config import BotConfig
 from bot.signals import indicators
 
 
@@ -104,8 +104,8 @@ class EmaRsiAtrStrategy:
         return signals
 
 
-def build_parameters(overrides: Optional[Dict[str, float | int]] = None) -> StrategyParameters:
-    settings = config.strategy.default_parameters.copy()
+def build_parameters(cfg: BotConfig, overrides: Optional[Dict[str, float | int]] = None) -> StrategyParameters:
+    settings = cfg.strategy.default_parameters.copy()
     if overrides:
         settings.update(overrides)
     return StrategyParameters(

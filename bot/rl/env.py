@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from bot.core import config
+from bot.core.config import BotConfig
 from bot.data import ensure_local_candles
 from bot.rl.rewards import get_reward_function
 from bot.signals import indicators
@@ -31,16 +31,18 @@ class FuturesTradingEnv:
         self,
         symbol: str,
         interval: str,
+        cfg: BotConfig,
         window: int | None = None,
         reward_scheme: str | None = None,
         max_steps: int | None = None,
     ) -> None:
         self.symbol = symbol
         self.interval = interval
-        self.window = window or config.rl.lookback_window
-        self.reward_fn = get_reward_function(reward_scheme or config.rl.reward_scheme)
-        self.max_steps = max_steps or config.rl.max_steps_per_episode
-        self.base_balance = config.backtest.initial_balance
+        self._config = cfg
+        self.window = window or cfg.rl.lookback_window
+        self.reward_fn = get_reward_function(reward_scheme or cfg.rl.reward_scheme)
+        self.max_steps = max_steps or cfg.rl.max_steps_per_episode
+        self.base_balance = cfg.backtest.initial_balance
         self._load_data()
         self.observation_size = self.window + 6
         self.action_space = len(self.action_meanings)
@@ -48,12 +50,13 @@ class FuturesTradingEnv:
         self.reset()
 
     def _load_data(self) -> None:
-        frame = ensure_local_candles(self.symbol, self.interval, min_rows=self.window + 200)
+        frame = ensure_local_candles(self._config, self.symbol, self.interval, min_rows=self.window + 200)
         frame = frame.sort_values("open_time").reset_index(drop=True)
-        fast_len = int(config.strategy.default_parameters.get("fast_ema", 13))
-        slow_len = int(config.strategy.default_parameters.get("slow_ema", 34))
-        rsi_len = int(config.strategy.default_parameters.get("rsi_length", 14))
-        atr_len = int(config.strategy.default_parameters.get("atr_period", 14))
+        defaults = self._config.strategy.default_parameters
+        fast_len = int(defaults.get("fast_ema", 13))
+        slow_len = int(defaults.get("slow_ema", 34))
+        rsi_len = int(defaults.get("rsi_length", 14))
+        atr_len = int(defaults.get("atr_period", 14))
         frame["ema_fast"] = indicators.ema(frame["close"], fast_len)
         frame["ema_slow"] = indicators.ema(frame["close"], slow_len)
         frame["rsi"] = indicators.rsi(frame["close"], rsi_len)
@@ -151,17 +154,18 @@ class FuturesTradingEnv:
         total_actions = max(sum(self._action_counts), 1)
         long_bias = self._action_counts[1] / total_actions
         short_bias = self._action_counts[2] / total_actions
-        fast = int(config.strategy.default_parameters["fast_ema"] * (0.8 + long_bias * 0.4))
-        slow = int(config.strategy.default_parameters["slow_ema"] * (1.0 + short_bias * 0.5))
-        rsi_overbought = config.strategy.default_parameters["rsi_overbought"] + short_bias * 5
-        rsi_oversold = config.strategy.default_parameters["rsi_oversold"] - long_bias * 5
+        defaults = self._config.strategy.default_parameters
+        fast = int(defaults["fast_ema"] * (0.8 + long_bias * 0.4))
+        slow = int(defaults["slow_ema"] * (1.0 + short_bias * 0.5))
+        rsi_overbought = defaults["rsi_overbought"] + short_bias * 5
+        rsi_oversold = defaults["rsi_oversold"] - long_bias * 5
         return {
             "fast_ema": max(5, min(60, fast)),
             "slow_ema": max(20, min(200, slow)),
             "rsi_overbought": max(50, min(80, rsi_overbought)),
             "rsi_oversold": max(20, min(50, rsi_oversold)),
-            "atr_stop": max(0.5, min(3.0, config.strategy.default_parameters["atr_stop"] + short_bias * 0.5)),
-            "atr_target": max(1.0, min(4.0, config.strategy.default_parameters["atr_target"] + long_bias * 0.5)),
+            "atr_stop": max(0.5, min(3.0, defaults["atr_stop"] + short_bias * 0.5)),
+            "atr_target": max(1.0, min(4.0, defaults["atr_target"] + long_bias * 0.5)),
         }
 
 

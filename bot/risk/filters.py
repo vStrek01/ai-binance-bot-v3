@@ -2,27 +2,32 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Dict, Tuple
 
 from bot.core.config import BotConfig
+from bot.data import fetch_recent_candles
 from bot.external_signals import ExternalSignalProvider
 from bot.signals import indicators
 
 
 @dataclass(slots=True)
 class MultiTimeframeFilter:
-    cfg: BotConfig
-    candle_source: Callable[[str, str, int], Any]
+    _config: BotConfig
 
     def evaluate(self, symbol: str, direction: int) -> Tuple[bool, Dict[str, Any]]:
-        cfg = self.cfg.multi_timeframe
+        cfg = self._config.multi_timeframe
         if not cfg.enabled or not cfg.confirm_timeframes:
             return True, {}
         confirmations: Dict[str, Any] = {}
         passed = True if cfg.require_alignment else False
         for timeframe in cfg.confirm_timeframes:
             try:
-                candles = self.candle_source(symbol, timeframe, min(self.cfg.runtime.lookback_limit, 500))
+                candles = fetch_recent_candles(
+                    self._config,
+                    symbol,
+                    timeframe,
+                    limit=min(self._config.runtime.lookback_limit, 500),
+                )
             except Exception as exc:  # noqa: BLE001
                 confirmations[timeframe] = {"status": f"error:{exc}"}
                 if cfg.require_alignment:
@@ -59,7 +64,7 @@ class MultiTimeframeFilter:
 class ExternalSignalGate:
     def __init__(self, cfg: BotConfig, provider: ExternalSignalProvider | None = None) -> None:
         self._config = cfg
-        self.provider = provider or ExternalSignalProvider()
+        self.provider = provider or ExternalSignalProvider(cfg)
         self._latest_scores: Dict[str, float] = {}
 
     @property

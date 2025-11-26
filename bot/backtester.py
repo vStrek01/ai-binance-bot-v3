@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -28,17 +29,78 @@ class RealismProfile:
     force_funding: Optional[bool] = None
 
 
-REALISM_PROFILES: Dict[str, RealismProfile] = {
-    "toy": RealismProfile(slippage_scale=0.5, fee_scale=0.5, latency_scale=0.0, force_latency=False, force_funding=False),
-    "standard": RealismProfile(),
-    "aggressive": RealismProfile(
-        slippage_scale=2.0,
-        fee_scale=1.25,
-        latency_scale=1.5,
-        force_latency=True,
-        force_funding=True,
+class RealismMode(str, Enum):
+    TOY = "toy"
+    STANDARD = "standard"
+    AGGRESSIVE = "aggressive"
+
+
+@dataclass(frozen=True)
+class RealismPreset:
+    mode: RealismMode
+    label: str
+    description: str
+    profile: RealismProfile
+
+
+REALISM_PRESETS: Dict[str, RealismPreset] = {
+    RealismMode.TOY.value: RealismPreset(
+        mode=RealismMode.TOY,
+        label="Toy",
+        description="Halved friction for quick research loops; disables latency/funding.",
+        profile=RealismProfile(slippage_scale=0.5, fee_scale=0.5, latency_scale=0.0, force_latency=False, force_funding=False),
+    ),
+    RealismMode.STANDARD.value: RealismPreset(
+        mode=RealismMode.STANDARD,
+        label="Standard",
+        description="Matches live defaults for fees, slippage, latency, and funding toggles.",
+        profile=RealismProfile(),
+    ),
+    RealismMode.AGGRESSIVE.value: RealismPreset(
+        mode=RealismMode.AGGRESSIVE,
+        label="Aggressive",
+        description="Stress-test mode with extra latency, slippage, and forced funding debits.",
+        profile=RealismProfile(
+            slippage_scale=2.0,
+            fee_scale=1.25,
+            latency_scale=1.5,
+            force_latency=True,
+            force_funding=True,
+        ),
     ),
 }
+
+
+REALISM_PROFILES: Dict[str, RealismProfile] = {key: preset.profile for key, preset in REALISM_PRESETS.items()}
+
+
+def _resolve_realism(level: str) -> RealismPreset:
+    key = (level or RealismMode.STANDARD.value).lower()
+    return REALISM_PRESETS.get(key, REALISM_PRESETS[RealismMode.STANDARD.value])
+
+
+def _realism_metadata(
+    preset: RealismPreset,
+    *,
+    fee_rate: float,
+    slippage_rate: float,
+    latency_ms: float,
+    latency_ratio: float,
+    funding_enabled: bool,
+    funding_rate: float,
+) -> Dict[str, Any]:
+    return {
+        "mode": preset.mode.value,
+        "label": preset.label,
+        "description": preset.description,
+        "fee_rate": fee_rate,
+        "slippage_bps": round(slippage_rate * 10_000, 4),
+        "latency_enabled": latency_ratio > 0,
+        "latency_ms": latency_ms,
+        "latency_ratio": latency_ratio,
+        "funding_enabled": funding_enabled,
+        "funding_rate_bps": round(funding_rate * 10_000, 6),
+    }
 
 
 def _timeframe_to_minutes(timeframe: str) -> float:
@@ -75,26 +137,108 @@ class TradeResult:
     funding: float = 0.0
 
 
+def _sort_trades_by_closed_at(trades: Sequence[TradeResult]) -> List[TradeResult]:
+    ordered: List[tuple[int, int, TradeResult]] = []
+    for idx, trade in enumerate(trades):
+        try:
+            timestamp = int(pd.Timestamp(trade.closed_at).value)
+        except Exception:  # noqa: BLE001 - fallback for unparsable timestamps
+            timestamp = trade.exit_index if trade.exit_index is not None else idx
+        secondary = trade.exit_index if trade.exit_index is not None else idx
+        ordered.append((timestamp, secondary, trade))
+    ordered.sort(key=lambda item: (item[0], item[1]))
+    return [item[2] for item in ordered]
+
+
+def build_equity_curve(trades: Sequence[TradeResult], initial_balance: float) -> List[float]:
+    equity = float(initial_balance)
+    curve = [equity]
+    for trade in trades:
+        equity += trade.pnl
+        curve.append(equity)
+    return curve
+
+
+def _risk_metrics_from_curve(equity_curve: Sequence[float]) -> tuple[float, float, float]:
+    if len(equity_curve) < 2:
+        return 0.0, 0.0, 0.0
+    equity = np.array(equity_curve, dtype=float)
+    prev = equity[:-1]
+    prev[prev == 0] = 1e-9
+    returns = np.diff(equity) / prev
+    sharpe = float(returns.mean() / returns.std() * np.sqrt(252)) if returns.std() != 0 else 0.0
+    downside = returns[returns < 0]
+    sortino = float(returns.mean() / downside.std() * np.sqrt(252)) if downside.size and downside.std() != 0 else 0.0
+    peak = -np.inf
+    max_drawdown = 0.0
+    for value in equity_curve:
+        peak = max(peak, value)
+        if peak:
+            max_drawdown = max(max_drawdown, (peak - value) / peak)
+    return sharpe, sortino, float(max_drawdown)
+
+
+def summarize_trades(trades: Sequence[TradeResult], initial_balance: float) -> tuple[Dict[str, float], List[float]]:
+    ordered_trades = trades if len(trades) <= 1 else _sort_trades_by_closed_at(trades)
+    equity_curve = build_equity_curve(ordered_trades, initial_balance)
+    pnl = np.array([trade.pnl for trade in ordered_trades], dtype=float) if ordered_trades else np.array([], dtype=float)
+    wins = pnl[pnl > 0]
+    losses = pnl[pnl <= 0]
+    total = float(pnl.sum()) if pnl.size else 0.0
+    trade_count = len(ordered_trades)
+    win_rate = float(len(wins) / trade_count) if trade_count else 0.0
+    if losses.size and losses.sum() != 0:
+        profit_factor = float(wins.sum() / abs(losses.sum()))
+    else:
+        profit_factor = float("inf") if wins.size else 0.0
+    expectancy = total / trade_count if trade_count else 0.0
+    sharpe, sortino, max_drawdown = _risk_metrics_from_curve(equity_curve)
+    metrics = {
+        "total_pnl": total,
+        "trades": trade_count,
+        "win_rate": win_rate,
+        "profit_factor": profit_factor,
+        "expectancy": expectancy,
+        "sharpe": sharpe,
+        "sortino": sortino,
+        "max_drawdown": max_drawdown,
+        "ending_balance": equity_curve[-1] if equity_curve else float(initial_balance),
+    }
+    return metrics, equity_curve
+
+
+@dataclass(frozen=True)
+class PortfolioSlice:
+    symbol: str
+    timeframe: str
+    candles: pd.DataFrame
+    params: StrategyParameters
+    weight: float = 1.0
+
+
 class BacktestRunner(MultiSymbolRunnerBase):
     def __init__(
         self,
-        cfg: BotConfig,
         symbol: str,
         timeframe: str,
         candles: pd.DataFrame,
         params: StrategyParameters,
         exchange_info: ExchangeInfoManager,
+        cfg: BotConfig,
+        *,
+        initial_balance: Optional[float] = None,
     ) -> None:
-        self._config = cfg
         validate_candles(candles, symbol, timeframe)
         dataset = candles.tail(cfg.backtest.max_bars).reset_index(drop=True)
         markets = [(symbol, timeframe, params)]
+        self._config = cfg
+        self._initial_balance = float(initial_balance) if initial_balance is not None else cfg.backtest.initial_balance
         super().__init__(
             markets,
             exchange_info,
             cfg,
             mode_label="backtest",
-            initial_balance=cfg.backtest.initial_balance,
+            initial_balance=self._initial_balance,
         )
         self._symbol = symbol
         self._timeframe = timeframe
@@ -102,7 +246,8 @@ class BacktestRunner(MultiSymbolRunnerBase):
         self._cursor = 0
         self._timeframe_minutes = _timeframe_to_minutes(timeframe)
         self._timeframe_ms = self._timeframe_minutes * 60_000
-        profile = REALISM_PROFILES.get(cfg.backtest.realism_level, REALISM_PROFILES["standard"])
+        self._realism_preset = _resolve_realism(cfg.backtest.realism_level)
+        profile = self._realism_preset.profile
         base_fee = cfg.risk.taker_fee if cfg.backtest.fee_model == "taker" else cfg.risk.maker_fee
         self._fee_rate = base_fee * profile.fee_scale
         base_slippage = cfg.backtest.slippage_bps / 10_000
@@ -118,6 +263,16 @@ class BacktestRunner(MultiSymbolRunnerBase):
         self._funding_bars = self._compute_funding_bars()
         self._bars_since_funding = 0
         self._trade_log: List[TradeResult] = []
+        self._last_equity_curve: List[float] = []
+        self._realism_metadata = _realism_metadata(
+            self._realism_preset,
+            fee_rate=self._fee_rate,
+            slippage_rate=self._slippage,
+            latency_ms=self._latency_ms,
+            latency_ratio=self._latency_ratio,
+            funding_enabled=self._funding_enabled,
+            funding_rate=self._funding_rate,
+        )
 
     def execute(self) -> Dict[str, object]:
         total_rows = len(self._dataset)
@@ -133,8 +288,15 @@ class BacktestRunner(MultiSymbolRunnerBase):
             self._step_all()
             self._after_bar_advanced()
         status_store.set_mode("idle", None, None)
-        metrics = self._compute_metrics()
-        return {"symbol": self._symbol, "timeframe": self._timeframe, "trades": self._trade_log, "metrics": metrics}
+        metrics, equity_curve = self._compute_metrics()
+        return {
+            "symbol": self._symbol,
+            "timeframe": self._timeframe,
+            "trades": list(self._trade_log),
+            "metrics": metrics,
+            "equity_curve": equity_curve,
+            "realism": self._realism_metadata,
+        }
 
     def _fetch_frame(self, ctx: MarketContext, lookback: int) -> Optional[pd.DataFrame]:  # type: ignore[override]
         del ctx
@@ -241,54 +403,10 @@ class BacktestRunner(MultiSymbolRunnerBase):
         )
         self._trade_log.append(result)
 
-    def _compute_metrics(self) -> Dict[str, float]:
-        pnl = np.array([trade.pnl for trade in self._trade_log]) if self._trade_log else np.array([])
-        wins = pnl[pnl > 0]
-        losses = pnl[pnl <= 0]
-        total = float(pnl.sum()) if pnl.size else 0.0
-        win_rate = float(len(wins) / len(self._trade_log)) if self._trade_log else 0.0
-        if losses.size and losses.sum() != 0:
-            profit_factor = float(wins.sum() / abs(losses.sum()))
-        else:
-            profit_factor = float("inf") if wins.size else 0.0
-        expectancy = total / len(self._trade_log) if self._trade_log else 0.0
-        equity_curve = self._build_equity_curve()
-        sharpe, sortino, max_drawdown = self._risk_metrics(equity_curve)
-        return {
-            "total_pnl": total,
-            "trades": len(self._trade_log),
-            "win_rate": win_rate,
-            "profit_factor": profit_factor,
-            "expectancy": expectancy,
-            "sharpe": sharpe,
-            "sortino": sortino,
-            "max_drawdown": max_drawdown,
-            "ending_balance": equity_curve[-1] if equity_curve else self._config.backtest.initial_balance,
-        }
-
-    def _build_equity_curve(self) -> List[float]:
-        equity = self._config.backtest.initial_balance
-        curve = [equity]
-        for trade in self._trade_log:
-            equity += trade.pnl
-            curve.append(equity)
-        return curve
-
-    def _risk_metrics(self, equity_curve: List[float]) -> tuple[float, float, float]:
-        if len(equity_curve) < 2:
-            return 0.0, 0.0, 0.0
-        equity = np.array(equity_curve)
-        returns = np.diff(equity) / equity[:-1]
-        sharpe = float(returns.mean() / returns.std() * np.sqrt(252)) if returns.std() != 0 else 0.0
-        downside = returns[returns < 0]
-        sortino = float(returns.mean() / downside.std() * np.sqrt(252)) if downside.size and downside.std() != 0 else 0.0
-        peak = -np.inf
-        max_drawdown = 0.0
-        for value in equity_curve:
-            peak = max(peak, value)
-            if peak:
-                max_drawdown = max(max_drawdown, (peak - value) / peak)
-        return sharpe, sortino, float(max_drawdown)
+    def _compute_metrics(self) -> tuple[Dict[str, float], List[float]]:
+        metrics, curve = summarize_trades(self._trade_log, self._initial_balance)
+        self._last_equity_curve = curve
+        return metrics, curve
 
     def _after_bar_advanced(self) -> None:
         if not self._funding_enabled or self._funding_bars <= 0:
@@ -397,9 +515,86 @@ class Backtester:
         timeframe: str,
         candles: pd.DataFrame,
         params: StrategyParameters,
+        *,
+        initial_balance: Optional[float] = None,
     ) -> Dict[str, object]:
-        runner = BacktestRunner(self._config, symbol, timeframe, candles, params, self.exchange_info)
+        runner = BacktestRunner(
+            symbol,
+            timeframe,
+            candles,
+            params,
+            self.exchange_info,
+            self._config,
+            initial_balance=initial_balance,
+        )
         return runner.execute()
 
 
-__all__ = ["Backtester", "BacktestRunner", "TradeResult"]
+class PortfolioBacktester:
+    """Aggregate multiple single-market backtests under a shared capital base."""
+
+    def __init__(self, cfg: BotConfig, exchange_info: ExchangeInfoManager) -> None:
+        self._config = cfg
+        self.exchange_info = exchange_info
+        self._backtester = Backtester(cfg, exchange_info)
+
+    def run(
+        self,
+        slices: Sequence[PortfolioSlice],
+        *,
+        initial_balance: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        entries = list(slices)
+        if not entries:
+            raise ValueError("Portfolio backtest requires at least one slice")
+        weights = [max(entry.weight, 0.0) for entry in entries]
+        total_weight = sum(weights)
+        if total_weight <= 0:
+            raise ValueError("At least one slice must have a positive weight")
+        capital = float(initial_balance) if initial_balance is not None else self._config.backtest.initial_balance
+        allocations = [capital * (weight / total_weight) for weight in weights]
+        slice_results: List[Dict[str, Any]] = []
+        combined_trades: List[TradeResult] = []
+        for entry, allocation, weight in zip(entries, allocations, weights):
+            outcome = self._backtester.run(
+                entry.symbol,
+                entry.timeframe,
+                entry.candles,
+                entry.params,
+                initial_balance=allocation,
+            )
+            normalized_weight = weight / total_weight if total_weight else 0.0
+            slice_results.append(
+                {
+                    "symbol": entry.symbol,
+                    "timeframe": entry.timeframe,
+                    "weight": normalized_weight,
+                    "allocation": allocation,
+                    "metrics": outcome.get("metrics", {}),
+                    "trades": outcome.get("trades", []),
+                    "equity_curve": outcome.get("equity_curve", []),
+                    "realism": outcome.get("realism"),
+                }
+            )
+            combined_trades.extend(outcome.get("trades", []))
+        ordered_trades = _sort_trades_by_closed_at(combined_trades)
+        metrics, equity_curve = summarize_trades(ordered_trades, capital)
+        return {
+            "initial_balance": capital,
+            "trades": ordered_trades,
+            "metrics": metrics,
+            "equity_curve": equity_curve,
+            "slices": slice_results,
+        }
+
+
+__all__ = [
+    "Backtester",
+    "BacktestRunner",
+    "PortfolioBacktester",
+    "PortfolioSlice",
+    "RealismMode",
+    "TradeResult",
+    "build_equity_curve",
+    "summarize_trades",
+]

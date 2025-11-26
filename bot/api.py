@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -12,13 +13,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from websockets.exceptions import ConnectionClosedOK
 
-from bot import config
 from bot.status import status_store
 from bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-FRONTEND_DIR = config.BASE_DIR / "frontend"
+BASE_DIR = Path(__file__).resolve().parents[1]
+FRONTEND_DIR = BASE_DIR / "frontend"
 FRONTEND_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_FILE = FRONTEND_DIR / "index.html"
 

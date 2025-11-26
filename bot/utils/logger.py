@@ -2,17 +2,25 @@
 from __future__ import annotations
 
 import logging
-
-from bot import config
+import os
+from pathlib import Path
 
 _logger_initialized = False
+
+
+def _log_dir() -> Path:
+    override = os.getenv("BOT_LOG_DIR")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parents[2] / "logs"
 
 
 def get_logger(name: str) -> logging.Logger:
     global _logger_initialized
     if not _logger_initialized:
-        config.LOG_DIR.mkdir(parents=True, exist_ok=True)
-        log_path = config.LOG_DIR / "bot.log"
+        directory = _log_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        log_path = directory / "bot.log"
         handlers = [logging.StreamHandler()]
         file_handler_error: str | None = None
         try:

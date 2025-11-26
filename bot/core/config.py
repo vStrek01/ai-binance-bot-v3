@@ -136,6 +136,12 @@ class OptimizerConfig:
     max_param_combinations: int | None = None
     max_symbols_per_run: int | None = None
     randomize: bool = False
+    search_mode: Literal["grid", "random"] = "grid"
+    random_subset: int | None = None
+    random_seed: int | None = None
+    score_metric: str = "total_pnl"
+    early_stop_patience: int | None = None
+    min_improvement: float = 0.0
 
 
 @dataclass(frozen=True)

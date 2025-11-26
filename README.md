@@ -71,6 +71,11 @@ Checkpoints land in `data/rl_checkpoints`. Derived strategy knobs (EMA lengths, 
 3. Shrink/shift each parameter range around the winners (with variance-based spreads) and run the next round.
 4. Persist aggregated results to `optimization_results/hyper_params.json` so `--use-best` can load them automatically.
 
+`Optimizer` also supports incremental tweaks:
+- `optimizer.search_mode="random"` + `random_subset` + `random_seed` samples a deterministic slice of the parameter grid.
+- `optimizer.score_metric` chooses which metric drives ranking/persistence (defaults to `total_pnl`).
+- `optimizer.min_improvement` + `optimizer.early_stop_patience` halt sequential runs once no combo beats the incumbent by the requested delta for `patience` evaluations.
+
 Use cases:
 ```powershell
 python -m bot.runner self-tune --symbol BTCUSDT --interval 1m --rounds 4 --top 8
@@ -88,6 +93,8 @@ python -m bot.runner self-tune --symbol BTCUSDT --interval 1m --rounds 4 --top 8
 - Set `config.backtest.enable_funding_costs=True` (or rely on the aggressive preset) to apply periodic funding debits/credits using `funding_rate_bps` and `funding_interval_hours`.
 - Enable `config.backtest.enable_latency` to nudge entries toward unfavorable intrabar extremes using `latency_ms` to size the delay.
 - All realism hooks piggyback on the same sizing/risk logic as paper/live runners, so daily loss halts, exposure caps, and MultiTimeframe/External signal gates remain in play.
+- Every backtest response now exports an `equity_curve` plus a `realism` metadata blob (active profile, fee/slippage multipliers, latency/funding flags) so downstream tooling can display or persist richer diagnostics without rehydrating config.
+- Prefer `PortfolioBacktester` when you want to replay multiple symbols/timeframes as one allocation: feed it `PortfolioSlice` objects, and it will split the capital base, merge the trades chronologically, and emit aggregate portfolio metrics.
 
 ## Demo-live on Binance testnet
 ```powershell

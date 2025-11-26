@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from typing import Any, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 
 import uvicorn
 
-from bot import config, data
+from bot import data
 from bot.backtester import Backtester
+from bot.core.config import BotConfig, ensure_directories, load_config
 from bot.exchange_info import ExchangeInfoManager
 from bot.execution.client_factory import build_data_client, build_trading_client
 from bot.learning import TradeLearningStore
@@ -29,19 +30,28 @@ from bot.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+CommandHandler = Callable[[BotConfig, argparse.Namespace], None]
+
+
 _RL_STORE: RLPolicyStore | None = None
+_RL_STORE_KEY: Optional[str] = None
 
 
-def _resolve_rl_store() -> RLPolicyStore | None:
-    global _RL_STORE
-    if not (config.runtime.use_rl_policy and config.rl.enabled):
+def _resolve_rl_store(cfg: BotConfig) -> RLPolicyStore | None:
+    global _RL_STORE, _RL_STORE_KEY
+    if not (cfg.runtime.use_rl_policy and cfg.rl.enabled):
         return None
-    if _RL_STORE is None:
-        try:
-            _RL_STORE = RLPolicyStore()
-        except Exception as exc:  # noqa: BLE001 - log and disable
-            logger.warning("Unable to initialize RL policy store: %s", exc)
-            return None
+    key = str(cfg.paths.optimization_dir)
+    if _RL_STORE is not None and _RL_STORE_KEY == key:
+        return _RL_STORE
+    try:
+        _RL_STORE = RLPolicyStore(cfg)
+        _RL_STORE_KEY = key
+    except Exception as exc:  # noqa: BLE001 - log and disable
+        logger.warning("Unable to initialize RL policy store: %s", exc)
+        _RL_STORE = None
+        _RL_STORE_KEY = None
+        return None
     return _RL_STORE
 
 
@@ -60,11 +70,11 @@ def _report_rl_state(
     )
 
 
-def _rl_guardrails_allow(params: Dict[str, float]) -> tuple[bool, str]:
-    max_dev = max(config.rl.max_param_deviation_from_baseline, 0.0)
+def _rl_guardrails_allow(cfg: BotConfig, params: Dict[str, float]) -> tuple[bool, str]:
+    max_dev = max(cfg.rl.max_param_deviation_from_baseline, 0.0)
     if max_dev <= 0:
         return False, "max_deviation_zero"
-    baseline = config.strategy.default_parameters
+    baseline = cfg.strategy.default_parameters
     for key, value in params.items():
         if key not in baseline:
             continue
@@ -80,8 +90,15 @@ def _rl_guardrails_allow(params: Dict[str, float]) -> tuple[bool, str]:
     return True, ""
 
 
-def _load_rl_overrides(symbol: str, interval: str, *, rl_context: str, allow_rl: bool) -> Optional[Dict[str, float]]:
-    active = config.runtime.use_rl_policy and config.rl.enabled
+def _load_rl_overrides(
+    cfg: BotConfig,
+    symbol: str,
+    interval: str,
+    *,
+    rl_context: str,
+    allow_rl: bool,
+) -> Optional[Dict[str, float]]:
+    active = cfg.runtime.use_rl_policy and cfg.rl.enabled
     if not active:
         _report_rl_state(
             active=False,
@@ -103,7 +120,7 @@ def _load_rl_overrides(symbol: str, interval: str, *, rl_context: str, allow_rl:
         )
         logger.info("RL overrides blocked for %s %s (%s context)", symbol, interval, rl_context)
         return None
-    store = _resolve_rl_store()
+    store = _resolve_rl_store(cfg)
     if not store:
         _report_rl_state(
             active=True,
@@ -126,7 +143,7 @@ def _load_rl_overrides(symbol: str, interval: str, *, rl_context: str, allow_rl:
             interval=interval,
         )
         return None
-    allowed, reason = _rl_guardrails_allow(params)
+    allowed, reason = _rl_guardrails_allow(cfg, params)
     if not allowed:
         _report_rl_state(
             active=True,
@@ -150,8 +167,8 @@ def _load_rl_overrides(symbol: str, interval: str, *, rl_context: str, allow_rl:
     return params
 
 
-def _resolve_device(preferred: Optional[str] = None) -> str:
-    target = (preferred or config.rl.device_preference).lower()
+def _resolve_device(cfg: BotConfig, preferred: Optional[str] = None) -> str:
+    target = (preferred or cfg.rl.device_preference).lower()
     if target != "auto":
         return target
     try:
@@ -164,75 +181,89 @@ def _resolve_device(preferred: Optional[str] = None) -> str:
     return "cpu"
 
 
-def _resolve_download_symbols(symbols: Optional[Sequence[str]]) -> list[str]:
+def _resolve_download_symbols(cfg: BotConfig, symbols: Optional[Sequence[str]]) -> list[str]:
     if not symbols:
-        return list(config.DEFAULT_SYMBOLS)
+        return list(cfg.universe.default_symbols)
     tokens = [token.upper() for token in symbols if token]
     if not tokens:
-        return list(config.DEFAULT_SYMBOLS)
+        return list(cfg.universe.default_symbols)
     if len(tokens) == 1 and tokens[0] == "ALL":
         # Align downloads with the demo symbol universe to avoid fetching disabled markets.
-        return list(config.DEMO_SYMBOLS)
+        return list(cfg.universe.demo_symbols)
     return tokens
 
 
-def cmd_download(args: argparse.Namespace) -> None:
-    symbols = _resolve_download_symbols(args.symbols)
-    intervals = args.intervals or config.TIMEFRAMES
+def cmd_download(cfg: BotConfig, args: argparse.Namespace) -> None:
+    symbols = _resolve_download_symbols(cfg, args.symbols)
+    intervals = args.intervals or cfg.universe.timeframes
     for symbol in symbols:
         for interval in intervals:
             try:
-                data.download_klines(symbol, interval, limit=args.limit)
+                data.download_klines(cfg, symbol, interval, limit=args.limit)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Skipping %s %s download: %s", symbol, interval, exc)
 
 
-def _build_strategy_params(symbol: str, interval: str, use_best: bool, *, rl_context: str) -> StrategyParameters:
-    allow_rl = config.rl.enabled and config.runtime.use_rl_policy
-    if rl_context == "live" and not config.rl.apply_to_live:
+def _build_strategy_params(
+    cfg: BotConfig,
+    symbol: str,
+    interval: str,
+    use_best: bool,
+    *,
+    rl_context: str,
+) -> StrategyParameters:
+    allow_rl = cfg.rl.enabled and cfg.runtime.use_rl_policy
+    if rl_context == "live" and not cfg.rl.apply_to_live:
         allow_rl = False
-    overrides: Optional[Dict[str, float]] = _load_rl_overrides(symbol, interval, rl_context=rl_context, allow_rl=allow_rl)
+    overrides: Optional[Dict[str, float]] = _load_rl_overrides(
+        cfg,
+        symbol,
+        interval,
+        rl_context=rl_context,
+        allow_rl=allow_rl,
+    )
     if overrides is None and use_best:
-        overrides = load_best_parameters(symbol, interval)
+        overrides = load_best_parameters(cfg, symbol, interval)
         if overrides:
             logger.info("Loaded optimized parameters for %s %s", symbol, interval)
         else:
             logger.warning("No optimized parameters found for %s %s; using defaults", symbol, interval)
-    return build_parameters(overrides)
+    return build_parameters(cfg, overrides)
 
 
-def cmd_backtest(args: argparse.Namespace) -> None:
-    exchange = ExchangeInfoManager(client=build_data_client())
+def cmd_backtest(cfg: BotConfig, args: argparse.Namespace) -> None:
+    exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
     exchange.refresh(force=True)
-    backtester = Backtester(exchange)
+    backtester = Backtester(cfg, exchange)
     params = _build_strategy_params(
+        cfg,
         args.symbol,
         args.interval,
         getattr(args, "use_best", False),
         rl_context="backtest",
     )
-    candles = data.load_local_candles(args.symbol, args.interval)
+    candles = data.load_local_candles(cfg, args.symbol, args.interval)
     result = backtester.run(args.symbol, args.interval, candles, params)
     logger.info("Backtest metrics: %s", result["metrics"])
 
-def cmd_optimize(args: argparse.Namespace) -> None:
-    symbols = args.symbols or list(config.DEFAULT_SYMBOLS)
-    intervals = args.intervals or list(config.TIMEFRAMES)
-    optimizer = Optimizer(symbols, intervals)
+def cmd_optimize(cfg: BotConfig, args: argparse.Namespace) -> None:
+    symbols = args.symbols or list(cfg.universe.default_symbols)
+    intervals = args.intervals or list(cfg.universe.timeframes)
+    optimizer = Optimizer(symbols, intervals, cfg=cfg)
     optimizer.run()
 
 
-def cmd_train_all(_: argparse.Namespace) -> None:
-    optimizer = Optimizer(config.DEFAULT_SYMBOLS, config.TIMEFRAMES)
+def cmd_train_all(cfg: BotConfig, _: argparse.Namespace) -> None:
+    optimizer = Optimizer(cfg.universe.default_symbols, cfg.universe.timeframes, cfg=cfg)
     optimizer.run()
 
 
-def cmd_self_tune(args: argparse.Namespace) -> None:
-    symbols = _resolve_download_symbols(args.symbols) if args.symbols else list(config.DEFAULT_SYMBOLS)
-    intervals = args.intervals or list(config.TIMEFRAMES)
+def cmd_self_tune(cfg: BotConfig, args: argparse.Namespace) -> None:
+    symbols = _resolve_download_symbols(cfg, args.symbols) if args.symbols else list(cfg.universe.default_symbols)
+    intervals = args.intervals or list(cfg.universe.timeframes)
     rounds = args.rounds or 3
     top_k = args.top or 5
-    hyper = HyperparameterOptimizer(symbols, intervals, rounds=rounds, top_k=top_k)
+    hyper = HyperparameterOptimizer(cfg, symbols, intervals, rounds=rounds, top_k=top_k)
     results = hyper.run()
     if not results:
         logger.warning("Hyperparameter optimizer finished without results")
@@ -246,9 +277,9 @@ def cmd_self_tune(args: argparse.Namespace) -> None:
     )
 
 
-def _demo_symbol_universe(exchange: ExchangeInfoManager) -> list[str]:
+def _demo_symbol_universe(cfg: BotConfig, exchange: ExchangeInfoManager) -> list[str]:
     client = exchange.client
-    ordered_demo = list(config.DEMO_SYMBOLS)
+    ordered_demo = list(cfg.universe.demo_symbols)
     if not client:
         logger.info("Demo exchange client unavailable; using configured demo symbols: %s", ", ".join(ordered_demo))
         return ordered_demo
@@ -284,29 +315,34 @@ def _demo_symbol_universe(exchange: ExchangeInfoManager) -> list[str]:
     return ordered_demo
 
 
-def _all_supported_symbols(exchange: ExchangeInfoManager, *, demo_mode: bool = False) -> list[str]:
+def _all_supported_symbols(cfg: BotConfig, exchange: ExchangeInfoManager, *, demo_mode: bool = False) -> list[str]:
     if demo_mode:
-        universe = _demo_symbol_universe(exchange)
+        universe = _demo_symbol_universe(cfg, exchange)
         if universe:
             logger.info("Demo mode symbol universe resolved to: %s", ", ".join(universe))
             return universe
-        logger.warning("Falling back to config.DEMO_SYMBOLS for demo-live session")
-        fallback = list(config.DEMO_SYMBOLS)
+        logger.warning("Falling back to configured demo symbols for demo-live session")
+        fallback = list(cfg.universe.demo_symbols)
         logger.info("Demo mode fallback symbols: %s", ", ".join(fallback))
         return fallback
     symbols = sorted(exchange.symbols.keys())
     if symbols:
         return symbols
     logger.warning("Exchange info cache empty; falling back to default symbols")
-    return list(config.DEFAULT_SYMBOLS)
+    return list(cfg.universe.default_symbols)
 
 
 def _resolve_symbols(
-    symbol: Optional[str], symbols_arg: Optional[str], exchange: ExchangeInfoManager, *, demo_mode: bool = False
+    cfg: BotConfig,
+    symbol: Optional[str],
+    symbols_arg: Optional[str],
+    exchange: ExchangeInfoManager,
+    *,
+    demo_mode: bool = False,
 ) -> list[str]:
     if symbols_arg:
         if symbols_arg.strip().upper() == "ALL":
-            return _all_supported_symbols(exchange, demo_mode=demo_mode)
+            return _all_supported_symbols(cfg, exchange, demo_mode=demo_mode)
         candidates = [token.strip().upper() for token in symbols_arg.split(",") if token.strip()]
     elif symbol:
         candidates = [symbol.upper()]
@@ -332,43 +368,48 @@ def _resolve_symbols(
 
 
 def _build_markets(
-    symbols: Sequence[str], timeframe: str, use_best: bool, *, rl_context: str
+    cfg: BotConfig,
+    symbols: Sequence[str],
+    timeframe: str,
+    use_best: bool,
+    *,
+    rl_context: str,
 ) -> list[tuple[str, str, StrategyParameters]]:
     markets: list[tuple[str, str, StrategyParameters]] = []
     for sym in symbols:
-        params = _build_strategy_params(sym, timeframe, use_best, rl_context=rl_context)
+        params = _build_strategy_params(cfg, sym, timeframe, use_best, rl_context=rl_context)
         markets.append((sym, timeframe, params))
     return markets
 
 
-def cmd_dry_run(args: argparse.Namespace) -> None:
-    exchange = ExchangeInfoManager(client=build_data_client())
+def cmd_dry_run(cfg: BotConfig, args: argparse.Namespace) -> None:
+    exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
     exchange.refresh(force=True)
     use_best = getattr(args, "use_best", False)
-    symbols = _resolve_symbols(args.symbol, getattr(args, "symbols", None), exchange)
+    symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange)
     timeframe = args.interval
     if len(symbols) == 1:
-        params = _build_strategy_params(symbols[0], timeframe, use_best, rl_context="dry_run")
-        runner = DryRunner(symbols[0], timeframe, exchange, params)
+        params = _build_strategy_params(cfg, symbols[0], timeframe, use_best, rl_context="dry_run")
+        runner = DryRunner(symbols[0], timeframe, exchange, params, cfg)
     else:
-        markets = _build_markets(symbols, timeframe, use_best, rl_context="dry_run")
+        markets = _build_markets(cfg, symbols, timeframe, use_best, rl_context="dry_run")
         portfolio_meta = {
             "label": f"MANUAL ({len(symbols)})",
             "symbols": [{"symbol": sym, "timeframe": timeframe} for sym in symbols],
             "timeframe": timeframe,
             "metric": "manual",
         }
-        runner = MultiSymbolDryRunner(markets, exchange, mode_label="dry_run_multi", portfolio_meta=portfolio_meta)
+        runner = MultiSymbolDryRunner(markets, exchange, cfg, mode_label="dry_run_multi", portfolio_meta=portfolio_meta)
     asyncio.run(runner.run())
 
 
-def cmd_dry_run_portfolio(args: argparse.Namespace) -> None:
-    exchange = ExchangeInfoManager(client=build_data_client())
+def cmd_dry_run_portfolio(cfg: BotConfig, args: argparse.Namespace) -> None:
+    exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
     exchange.refresh()
     timeframe = args.interval
-    metric = args.metric or config.runtime.portfolio_metric
-    top_n = args.top or config.runtime.top_symbols
-    selection = select_top_markets(timeframe, top_n, metric)
+    metric = args.metric or cfg.runtime.portfolio_metric
+    top_n = args.top or cfg.runtime.top_symbols
+    selection = select_top_markets(cfg, timeframe, top_n, metric)
     use_best = getattr(args, "use_best", False)
     if selection:
         markets: list[tuple[str, str, StrategyParameters]] = []
@@ -378,16 +419,16 @@ def cmd_dry_run_portfolio(args: argparse.Namespace) -> None:
                 continue
             raw_params = entry.get("params")
             params = (
-                build_parameters(raw_params)
+                build_parameters(cfg, raw_params)
                 if raw_params
-                else _build_strategy_params(symbol, timeframe, use_best, rl_context="dry_run_portfolio")
+                else _build_strategy_params(cfg, symbol, timeframe, use_best, rl_context="dry_run_portfolio")
             )
             markets.append((symbol, timeframe, params))
         portfolio_meta = build_portfolio_meta(selection, metric)
     else:
         logger.warning("No optimization results available; falling back to ALL symbols")
-        symbols = _all_supported_symbols(exchange)
-        markets = _build_markets(symbols, timeframe, use_best, rl_context="dry_run_portfolio")
+        symbols = _all_supported_symbols(cfg, exchange)
+        markets = _build_markets(cfg, symbols, timeframe, use_best, rl_context="dry_run_portfolio")
         portfolio_meta = {
             "label": f"ALL ({len(symbols)})",
             "metric": metric,
@@ -396,22 +437,22 @@ def cmd_dry_run_portfolio(args: argparse.Namespace) -> None:
         }
     if not markets:
         raise RuntimeError("Portfolio dry-run requires at least one market")
-    runner = MultiSymbolDryRunner(markets, exchange, mode_label="dry_run_portfolio", portfolio_meta=portfolio_meta)
+    runner = MultiSymbolDryRunner(markets, exchange, cfg, mode_label="dry_run_portfolio", portfolio_meta=portfolio_meta)
     asyncio.run(runner.run())
 
 
-def cmd_demo_live(args: argparse.Namespace) -> None:
-    if not config.runtime.live_trading:
+def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
+    if not cfg.runtime.live_trading:
         raise RuntimeError(
-            "Live trading is disabled. Set config.runtime.live_trading = True or export BOT_ENABLE_DEMO_LIVE=1 "
+            "Live trading is disabled. Set runtime.live_trading = True or export BOT_ENABLE_DEMO_LIVE=1 "
             "to acknowledge the risk before running."
         )
-    trading_client = build_trading_client()
-    exchange = ExchangeInfoManager(client=trading_client)
+    trading_client = build_trading_client(cfg)
+    exchange = ExchangeInfoManager(cfg, client=trading_client)
     exchange.refresh(force=True)
     use_best = getattr(args, "use_best", False)
-    symbols = _resolve_symbols(args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
-    markets = _build_markets(symbols, args.interval, use_best, rl_context="live")
+    symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
+    markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
     logger.info("Initializing demo-live runner for symbols: %s", ", ".join(symbols))
     portfolio_meta = {
         "label": f"DEMO-LIVE ({len(symbols)})",
@@ -419,29 +460,29 @@ def cmd_demo_live(args: argparse.Namespace) -> None:
         "timeframe": args.interval,
         "metric": "demo_live",
     }
-    learning = TradeLearningStore()
     runner = LiveTrader(
         markets,
         exchange,
+        cfg,
         client=trading_client,
         portfolio_meta=portfolio_meta,
-        learning_store=learning,
+        learning_store=TradeLearningStore(cfg),
     )
     asyncio.run(runner.run())
 
 
-def cmd_train_rl(args: argparse.Namespace) -> None:
+def cmd_train_rl(cfg: BotConfig, args: argparse.Namespace) -> None:
     symbol = args.symbol.upper()
     interval = args.interval
-    window = args.window or config.rl.lookback_window
-    reward_scheme = args.reward or config.rl.reward_scheme
-    max_steps = args.max_steps or config.rl.max_steps_per_episode
-    episodes = args.episodes or config.rl.episodes
-    checkpoint_interval = args.checkpoint_interval or config.rl.checkpoint_interval
-    device = _resolve_device(getattr(args, "device", None))
-    env = FuturesTradingEnv(symbol, interval, window=window, reward_scheme=reward_scheme, max_steps=max_steps)
-    agent = ActorCriticAgent(env.observation_size, env.action_space, device=device)
-    trainer = RLTrainer(env, agent)
+    window = args.window or cfg.rl.lookback_window
+    reward_scheme = args.reward or cfg.rl.reward_scheme
+    max_steps = args.max_steps or cfg.rl.max_steps_per_episode
+    episodes = args.episodes or cfg.rl.episodes
+    checkpoint_interval = args.checkpoint_interval or cfg.rl.checkpoint_interval
+    device = _resolve_device(cfg, getattr(args, "device", None))
+    env = FuturesTradingEnv(symbol, interval, cfg, window=window, reward_scheme=reward_scheme, max_steps=max_steps)
+    agent = ActorCriticAgent(env.observation_size, env.action_space, cfg, device=device)
+    trainer = RLTrainer(env, agent, cfg)
     summary = trainer.train(episodes=episodes, checkpoint_interval=checkpoint_interval)
     logger.info(
         "RL training completed for %s %s | avg_reward=%.4f best_reward=%.4f",
@@ -452,24 +493,24 @@ def cmd_train_rl(args: argparse.Namespace) -> None:
     )
 
 
-def cmd_api(args: argparse.Namespace) -> None:
-    host = getattr(args, "host", config.runtime.api_host)
-    port = int(getattr(args, "port", config.runtime.api_port))
+def cmd_api(cfg: BotConfig, args: argparse.Namespace) -> None:
+    host = getattr(args, "host", cfg.runtime.api_host)
+    port = int(getattr(args, "port", cfg.runtime.api_port))
     reload = bool(getattr(args, "reload", False))
-    log_level = getattr(args, "log_level", config.runtime.log_level).lower()
+    log_level = getattr(args, "log_level", cfg.runtime.log_level).lower()
     uvicorn.run("bot.api:app", host=host, port=port, reload=reload, log_level=log_level)
 
 
-def cmd_full_cycle(_: argparse.Namespace) -> None:
-    FullCycleRunner().run()
+def cmd_full_cycle(cfg: BotConfig, _: argparse.Namespace) -> None:
+    FullCycleRunner(cfg).run()
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Binance USDC futures experimental bot")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     download = subparsers.add_parser("download", help="Download historical candles")
-    download.add_argument("--symbols", nargs="*", help="Symbols such as BTCUSDT; defaults to config list")
+    download.add_argument("--symbols", nargs="*", help="Symbols such as BTCUSDT; defaults to configured list")
     download.add_argument("--intervals", nargs="*", help="Intervals like 1m 5m")
     download.add_argument("--limit", type=int, default=1500, help="Number of klines to request per batch")
     download.set_defaults(func=cmd_download)
@@ -481,8 +522,8 @@ def build_parser() -> argparse.ArgumentParser:
     backtest.set_defaults(func=cmd_backtest)
 
     optimize = subparsers.add_parser("optimize", help="Launch parameter optimization")
-    optimize.add_argument("--symbols", nargs="*", help="Symbols to optimize; default is config.DEFAULT_SYMBOLS")
-    optimize.add_argument("--intervals", nargs="*", help="Intervals to optimize; default is config.TIMEFRAMES")
+    optimize.add_argument("--symbols", nargs="*", help="Symbols to optimize; default is configured universe")
+    optimize.add_argument("--intervals", nargs="*", help="Intervals to optimize; default is configured timeframes")
     optimize.set_defaults(func=cmd_optimize)
 
     train_all = subparsers.add_parser("train-all", help="Optimize all configured symbols and intervals")
@@ -541,10 +582,10 @@ def build_parser() -> argparse.ArgumentParser:
     train_rl.set_defaults(func=cmd_train_rl)
 
     api_cmd = subparsers.add_parser("api", help="Start the FastAPI dashboard server")
-    api_cmd.add_argument("--host", default=config.runtime.api_host, help="Listening host")
-    api_cmd.add_argument("--port", type=int, default=config.runtime.api_port, help="Listening port")
+    api_cmd.add_argument("--host", default=cfg.runtime.api_host, help="Listening host")
+    api_cmd.add_argument("--port", type=int, default=cfg.runtime.api_port, help="Listening port")
     api_cmd.add_argument("--reload", action="store_true", help="Enable autoreload (dev only)")
-    api_cmd.add_argument("--log-level", default=config.runtime.log_level, help="Uvicorn log level")
+    api_cmd.add_argument("--log-level", default=cfg.runtime.log_level, help="Uvicorn log level")
     api_cmd.set_defaults(func=cmd_api)
 
     full_cycle = subparsers.add_parser("full-cycle", help="Run the download/backtest/optimize + dry-run pipeline")
@@ -554,13 +595,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
-    parser = build_parser()
+    cfg = load_config()
+    ensure_directories(cfg.paths)
+    status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
+    parser = build_parser(cfg)
     args = parser.parse_args(argv)
     func = getattr(args, "func", None)
     if func is None:
         parser.print_help()
         raise SystemExit(1)
-    func(args)
+    func(cfg, args)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import json
 import statistics
+from dataclasses import replace
 from typing import Any, Dict, Iterable, List
 
-from bot.core import config
+from bot.core.config import BotConfig, ensure_directories
 from bot.optimizer import Optimizer
 from bot.utils.fileio import atomic_write_text
 from bot.utils.logger import get_logger
@@ -16,17 +17,19 @@ logger = get_logger(__name__)
 class HyperparameterOptimizer:
     def __init__(
         self,
+        cfg: BotConfig,
         symbols: Iterable[str],
         timeframes: Iterable[str],
         rounds: int = 3,
         top_k: int = 5,
     ) -> None:
+        self._config = cfg
         self.symbols = [sym.upper() for sym in symbols]
         self.timeframes = list(timeframes)
         self.rounds = max(1, rounds)
         self.top_k = max(1, top_k)
-        self._baseline_space = {key: list(values) for key, values in config.strategy.parameter_space.items()}
-        self._original_space = {key: list(values) for key, values in config.strategy.parameter_space.items()}
+        self._baseline_space = {key: list(values) for key, values in cfg.strategy.parameter_space.items()}
+        self._default_params = dict(cfg.strategy.default_parameters)
 
     def run(self) -> List[Dict[str, Any]]:
         best_results: List[Dict[str, Any]] = []
@@ -39,24 +42,21 @@ class HyperparameterOptimizer:
                 len(self.symbols),
                 len(self.timeframes),
             )
-            self._apply_space(current_space)
-            optimizer = Optimizer(self.symbols, self.timeframes)
+            round_cfg = self._with_space(current_space)
+            optimizer = Optimizer(self.symbols, self.timeframes, cfg=round_cfg)
             results = optimizer.run()
             if not results:
                 logger.warning("Adaptive round %s produced no results; stopping early", round_index)
                 break
             best_results = results[: self.top_k]
             current_space = self._refine_space(best_results)
-        self._restore_space()
         if best_results:
             self._persist(best_results)
         return best_results
 
-    def _apply_space(self, space: Dict[str, List[float]]) -> None:
-        config.strategy.parameter_space = {key: list(values) for key, values in space.items()}
-
-    def _restore_space(self) -> None:
-        config.strategy.parameter_space = {key: list(values) for key, values in self._original_space.items()}
+    def _with_space(self, space: Dict[str, List[float]]) -> BotConfig:
+        strategy = replace(self._config.strategy, parameter_space={key: list(values) for key, values in space.items()})
+        return replace(self._config, strategy=strategy)
 
     def _refine_space(self, winners: List[Dict[str, Any]]) -> Dict[str, List[float]]:
         refined: Dict[str, List[float]] = {}
@@ -66,7 +66,7 @@ class HyperparameterOptimizer:
             if not typed_values:
                 refined[key] = list(baseline)
                 continue
-            default = config.strategy.default_parameters.get(key, typed_values[0])
+            default = self._default_params.get(key, typed_values[0])
             refined[key] = self._expand_candidates(key, typed_values, baseline, default)
         return refined
 
@@ -103,8 +103,8 @@ class HyperparameterOptimizer:
         return unique_values
 
     def _persist(self, results: List[Dict[str, Any]]) -> None:
-        config.ensure_directories([config.OPTIMIZATION_DIR])
-        path = config.OPTIMIZATION_DIR / "hyper_params.json"
+        ensure_directories(self._config.paths, extra=[self._config.paths.optimization_dir])
+        path = self._config.paths.optimization_dir / "hyper_params.json"
         payload = json.dumps(results, indent=2)
         atomic_write_text(path, payload)
         logger.info("Hyperparameter optimizer results saved to %s", path)

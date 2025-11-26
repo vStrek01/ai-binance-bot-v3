@@ -6,12 +6,12 @@ import math
 import statistics
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import pandas as pd
 
 from bot.core.config import BotConfig
-from bot.data.feeds import fetch_recent_candles
+from bot.data import fetch_recent_candles
 from bot.exchange_info import ExchangeInfoManager
 from bot.risk import (
     ExternalSignalGate,
@@ -124,7 +124,6 @@ class MultiSymbolRunnerBase:
         initial_balance: Optional[float] = None,
         status_via_exchange: bool = False,
         risk_engine: Optional[RiskEngine] = None,
-        candle_loader: Optional[Callable[[str, str, int], pd.DataFrame]] = None,
     ) -> None:
         if not markets:
             raise ValueError("Multi-symbol runner requires at least one market")
@@ -152,14 +151,12 @@ class MultiSymbolRunnerBase:
         }
         self._pnl_history: List[float] = []
         self._sizer = PositionSizer(cfg)
-        candle_source = candle_loader or (lambda symbol, tf, limit: fetch_recent_candles(cfg, symbol, tf, limit=limit))
-        self._multi_filter = MultiTimeframeFilter(cfg, candle_source)
+        self._multi_filter = MultiTimeframeFilter(cfg)
         self._signal_gate = ExternalSignalGate(cfg)
         self._status_via_exchange = status_via_exchange
         self._risk_engine = risk_engine or RiskEngine(cfg)
         self._last_price_snapshot: Dict[str, float] = {}
         self._risk_state_cache: Optional[Dict[str, Any]] = None
-        self._fetch_candles = candle_source
 
     async def run(self) -> None:
         logger.info("%s runner starting for %s symbols", self.mode_label, len(self.contexts))
@@ -219,7 +216,7 @@ class MultiSymbolRunnerBase:
 
     def _fetch_frame(self, ctx: MarketContext, lookback: int) -> Optional[pd.DataFrame]:
         try:
-            candles = self._fetch_candles(ctx.symbol, ctx.timeframe, lookback)
+            candles = fetch_recent_candles(self._config, ctx.symbol, ctx.timeframe, limit=lookback)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to fetch %s %s candles: %s", ctx.symbol, ctx.timeframe, exc)
             return None
@@ -237,7 +234,7 @@ class MultiSymbolRunnerBase:
             self._log_sizing_skip(ctx, block_reason or "risk_halt")
             return
         price = float(latest_row["close"])
-        volatility = volatility_snapshot(self._config, frame)
+        volatility = volatility_snapshot(frame, self._config)
         balance = self._balance_for_risk()
         sizing_ctx = self._build_sizing_context(ctx, price, volatility)
         if sizing_ctx is None:

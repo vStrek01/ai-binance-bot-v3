@@ -9,10 +9,16 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from bot import config
 from bot.utils.fileio import FileLock, atomic_write_text
 
 logger = logging.getLogger(__name__)
+
+
+def _default_log_dir() -> Path:
+    override = os.getenv("BOT_LOG_DIR")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parents[1] / "logs"
 
 MAIN_PID_ENV = "STATUS_STORE_MAIN_PID"
 if os.getenv(MAIN_PID_ENV) is None:
@@ -22,8 +28,15 @@ if os.getenv(MAIN_PID_ENV) is None:
 class StatusStore:
     """Thread-safe in-memory snapshot of the bot state with disk sync."""
 
-    def __init__(self, persist_path: Optional[Path] = None) -> None:
-        target_path = persist_path or (config.LOG_DIR / "status.json")
+    def __init__(
+        self,
+        persist_path: Optional[Path] = None,
+        *,
+        log_dir: Optional[Path] = None,
+        default_balance: float = 1_000.0,
+    ) -> None:
+        resolved_log_dir = (log_dir or _default_log_dir()).resolve()
+        target_path = persist_path or (resolved_log_dir / "status.json")
         target_path.parent.mkdir(parents=True, exist_ok=True)
         self._persist_path: Path = target_path
         self._lock_path: Path = self._persist_path.with_name(self._persist_path.name + ".lock")
@@ -34,13 +47,31 @@ class StatusStore:
         self._lock = threading.Lock()
         self._last_loaded_mtime: float = 0.0
         self._log_throttle: Dict[str, float] = {}
+        self._default_balance = float(default_balance)
+        self._log_dir = resolved_log_dir
         self._state: Dict[str, Any] = self._load_from_disk() or self._default_state()
         if not self._persist_path.exists():
             self._persist_locked()
 
-    @staticmethod
-    def _default_state() -> Dict[str, Any]:
-        starting_balance = config.runtime.paper_account_balance
+    def configure(self, *, log_dir: Optional[Path] = None, default_balance: Optional[float] = None) -> None:
+        with self._lock:
+            if default_balance is not None:
+                self._default_balance = float(default_balance)
+            if log_dir is not None:
+                resolved = log_dir.resolve()
+                resolved.mkdir(parents=True, exist_ok=True)
+                self._log_dir = resolved
+                self._persist_path = resolved / self._persist_path.name
+                self._lock_path = self._persist_path.with_name(self._persist_path.name + ".lock")
+            if not self._persist_path.exists():
+                self._persist_locked()
+            else:
+                loaded = self._load_from_disk()
+                if loaded:
+                    self._state = loaded
+
+    def _default_state(self) -> Dict[str, Any]:
+        starting_balance = self._default_balance
         return {
             "mode": "idle",
             "symbol": None,

@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import torch
 from torch import optim
 
-from bot.core import config
+from bot.core.config import BotConfig
 from bot.rl.models import PolicyNetwork, ValueNetwork
 
 
@@ -16,10 +16,11 @@ class ActorCriticAgent:
         self,
         observation_dim: int,
         action_dim: int,
-        learning_rate: float | None = None,
-        gamma: float | None = None,
-        value_coef: float | None = None,
-        entropy_coef: float | None = None,
+        cfg: BotConfig,
+        learning_rate: Optional[float] = None,
+        gamma: Optional[float] = None,
+        value_coef: Optional[float] = None,
+        entropy_coef: Optional[float] = None,
         device: str = "cpu",
     ) -> None:
         self.device = torch.device(device)
@@ -27,11 +28,11 @@ class ActorCriticAgent:
         self.value = ValueNetwork(observation_dim).to(self.device)
         self.optimizer = optim.Adam(
             list(self.policy.parameters()) + list(self.value.parameters()),
-            lr=learning_rate or config.rl.learning_rate,
+            lr=learning_rate or cfg.rl.learning_rate,
         )
-        self.gamma = gamma or config.rl.gamma
-        self.value_coef = value_coef or config.rl.value_coef
-        self.entropy_coef = entropy_coef or config.rl.entropy_coef
+        self.gamma = gamma or cfg.rl.gamma
+        self.value_coef = value_coef or cfg.rl.value_coef
+        self.entropy_coef = entropy_coef or cfg.rl.entropy_coef
         self.log_probs: List[torch.Tensor] = []
         self.values: List[torch.Tensor] = []
         self.rewards: List[torch.Tensor] = []

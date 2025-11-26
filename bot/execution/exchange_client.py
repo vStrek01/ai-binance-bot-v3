@@ -37,6 +37,7 @@ class ExchangeRequestError(RuntimeError):
         code: Optional[int] = None,
         status_code: Optional[int] = None,
         original: Exception | None = None,
+        retryable: bool = False,
     ) -> None:
         super().__init__(f"{operation} failed ({category}): {message}")
         self.operation = operation
@@ -44,6 +45,7 @@ class ExchangeRequestError(RuntimeError):
         self.code = code
         self.status_code = status_code
         self.original = original
+        self.retryable = retryable
 
 
 class ExchangeClient:
@@ -123,6 +125,7 @@ class ExchangeClient:
                     code=getattr(exc, "error_code", None),
                     status_code=getattr(exc, "status_code", None),
                     original=exc,
+                    retryable=self._should_retry(category),
                 )
                 self._record_failure(category)
                 break
@@ -139,6 +142,7 @@ class ExchangeClient:
                     code=getattr(exc, "code", None),
                     status_code=getattr(exc, "status_code", None),
                     original=exc,
+                    retryable=self._should_retry(category),
                 )
                 self._record_failure(category)
                 break
@@ -148,7 +152,13 @@ class ExchangeClient:
                     self._sleep_with_backoff(label, category, attempt + 1, delay)
                     delay = min(delay * 2, self._max_backoff)
                     continue
-                last_error = ExchangeRequestError(operation=label, category=category, message=str(exc), original=exc)
+                last_error = ExchangeRequestError(
+                    operation=label,
+                    category=category,
+                    message=str(exc),
+                    original=exc,
+                    retryable=self._should_retry(category),
+                )
                 self._record_failure(category)
                 break
             except Exception as exc:  # pragma: no cover - unexpected

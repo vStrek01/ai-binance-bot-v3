@@ -1,14 +1,17 @@
 """Live trading runner that extends the multi-symbol loop with testnet orders."""
 from __future__ import annotations
 
-import logging
 import math
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from bot.core.config import BotConfig
 from bot.exchange_info import ExchangeInfoManager
+from bot.execution.balance_manager import BalanceManager, ExchangePosition
 from bot.execution.exchange_client import ExchangeClient, ExchangeRequestError
+from bot.execution.market_loop import EntryPlan, ExitPlan, MarketLoop
+from bot.execution.order_manager import OrderManager, OrderPlacementError, OrderRequest
+from bot.execution.risk_gate import RiskGate
 from bot.learning import TradeLearningStore
 from bot.live_logging import LiveTradeLogger, OrderAuditLogger
 from bot.execution.runners import MarketContext, MultiSymbolRunnerBase, PaperPosition
@@ -21,43 +24,40 @@ logger = get_logger(__name__)
 
 
 class LiveTrader(MultiSymbolRunnerBase):
-    _TRANSIENT_ERRORS = {-1003, -1015, -1021}
-    _EXPECTED_WARNINGS = {-2019, -2021, -2026}
 
     def __init__(
         self,
         markets: Sequence[Tuple[str, str, StrategyParameters]],
         exchange_info: ExchangeInfoManager,
-        *,
         cfg: BotConfig,
+        *,
         client: ExchangeClient,
         portfolio_meta: Optional[Dict[str, Any]] = None,
         learning_store: Optional[TradeLearningStore] = None,
     ) -> None:
         self._config = cfg
         self.client = client
-        self.order_logger = OrderAuditLogger()
-        self.trade_logger = LiveTradeLogger()
-        self.learning_store = learning_store or TradeLearningStore()
+        self.order_logger = OrderAuditLogger(cfg)
+        self.trade_logger = LiveTradeLogger(cfg)
+        self.learning_store = learning_store or TradeLearningStore(cfg)
         self._applied_learning: Dict[str, Dict[str, Any]] = {}
-        self._account_asset = cfg.runtime.demo_account_asset.upper()
-        self._balance_refresh_interval = cfg.runtime.balance_refresh_seconds
-        self._last_balance_refresh = 0.0
-        self._last_position_refresh = 0.0
         self._last_trade_refresh = 0.0
         self._last_position_snapshot: List[Dict[str, Any]] = []
         self._last_trade_ids: Dict[str, int] = {}
         self._synced_order_ids: set[int] = set()
         self._session_start_ms = int(time.time() * 1000)
-        self._exchange_positions: Dict[str, Dict[str, Any]] = {}
         self._latest_frames: Dict[str, Any] = {}
-        self._position_log_cache: Dict[str, float] = {}
-        self._risk_engine = RiskEngine(cfg)
         self._last_learning_update: Dict[str, float] = {}
-        self.balance = cfg.runtime.paper_account_balance
-        self.available_balance = cfg.runtime.paper_account_balance
-        self.total_balance = cfg.runtime.paper_account_balance
-        initial_balance = self._refresh_account_balance(force=True)
+        self._risk_engine = RiskEngine(cfg)
+        self.balance_manager = BalanceManager(cfg, client=client, risk_engine=self._risk_engine, exchange_info=exchange_info)
+        self.order_manager = OrderManager(cfg, client=self.client, logger=self.order_logger, balance_manager=self.balance_manager)
+        self._risk_gate = RiskGate(cfg, self._risk_engine)
+        self._pending_order_requests: Dict[str, OrderRequest] = {}
+        balance_snapshot = self.balance_manager.refresh_account_balance(force=True)
+        self.total_balance = balance_snapshot.total
+        self.available_balance = balance_snapshot.available
+        self.balance = self.available_balance
+        initial_balance = self.available_balance
         super().__init__(
             markets,
             exchange_info,
@@ -69,8 +69,22 @@ class LiveTrader(MultiSymbolRunnerBase):
             risk_engine=self._risk_engine,
         )
         self._ctx_lookup: Dict[str, MarketContext] = {ctx.symbol: ctx for ctx in self.contexts}
-        self._position_refresh_interval = max(3.0, min(float(self.poll_interval), 15.0))
         self._trade_refresh_interval = max(5.0, min(float(self.poll_interval) * 2.0, 30.0))
+        self._market_loops: Dict[str, MarketLoop] = {
+            ctx.symbol: MarketLoop(
+                ctx,
+                cfg,
+                risk_gate=self._risk_gate,
+                sizer=self._sizer,
+                multi_filter=self._multi_filter,
+                external_gate=self._signal_gate,
+                exchange_info=self.exchange_info,
+                sizing_builder=self._build_sizing_context,
+                timestamp_fn=self._timestamp_from_row,
+                log_sizing_skip=self._log_sizing_skip,
+            )
+            for ctx in self.contexts
+        }
 
     async def _before_loop(self) -> None:
         for ctx in self.contexts:
@@ -81,6 +95,8 @@ class LiveTrader(MultiSymbolRunnerBase):
     async def _before_step(self) -> None:
         self._refresh_account_balance()
         self._apply_learned_parameters()
+        await super()._before_step()
+
     def _step_all(self) -> None:
         self._sync_live_positions_and_trades()
         super()._step_all()
@@ -92,6 +108,62 @@ class LiveTrader(MultiSymbolRunnerBase):
             self._latest_frames[ctx.symbol] = frame
         return frame
 
+    def _maybe_enter(self, ctx: MarketContext, frame, latest_row):  # type: ignore[override]
+        loop = self._market_loops.get(ctx.symbol)
+        if not loop:
+            return
+        exposure = self._risk_engine.compute_exposure(self.balance_manager.exposure_payload())
+        plan = loop.plan_entry(
+            frame,
+            latest_row,
+            balance=self.balance,
+            equity=self._estimate_equity(),
+            available_balance=self.balance_manager.available_balance,
+            exposure=exposure,
+        )
+        if not plan:
+            return
+        self._pending_order_requests[ctx.symbol] = plan.order_request
+        success = self._on_position_open_request(ctx, plan.position, latest_row, plan.signal, plan.order_request)
+        self._pending_order_requests.pop(ctx.symbol, None)
+        if not success:
+            return
+        ctx.position = plan.position
+        logger.info(
+            "Opened %s position qty=%.4f entry=%.2f for %s %s",
+            "LONG" if plan.signal.direction == 1 else "SHORT",
+            plan.position.quantity,
+            plan.position.entry_price,
+            ctx.symbol,
+            ctx.timeframe,
+        )
+
+    def _update_position(self, ctx: MarketContext, row):  # type: ignore[override]
+        position = ctx.position
+        if not position:
+            return
+        loop = self._market_loops.get(ctx.symbol)
+        if not loop:
+            return
+        plan = loop.plan_exit(position, row)
+        if not plan:
+            return
+        filters = self.exchange_info.get_filters(ctx.symbol)
+        order_request = OrderRequest(
+            symbol=ctx.symbol,
+            side=plan.side,
+            quantity=plan.quantity,
+            order_type="MARKET",
+            reduce_only=True,
+            price=plan.price,
+            filters=filters,
+            tag=plan.reason,
+        )
+        self._pending_order_requests[ctx.symbol] = order_request
+        timestamp = self._timestamp_from_row(row)
+        self._close_position(ctx, position, plan.price, plan.reason, timestamp)
+        self._pending_order_requests.pop(ctx.symbol, None)
+
     def _balance_for_risk(self) -> float:
         return self._refresh_account_balance()
 
@@ -102,88 +174,13 @@ class LiveTrader(MultiSymbolRunnerBase):
             logger.warning("Unable to set leverage for %s: %s", symbol, exc)
 
     def _refresh_account_balance(self, force: bool = False) -> float:
-        now = time.time()
-        if not force and (now - self._last_balance_refresh) < self._balance_refresh_interval:
-            return self.balance
-        total_value = self.total_balance
-        available_value = self.available_balance
-        try:
-            balances = self.client.get_balance()
-        except ExchangeRequestError as exc:
-            logger.warning("Balance refresh failed: %s", exc)
-            return self.balance
-        for entry in balances or []:
-            if entry.get("asset") == self._account_asset:
-                total_value = self._safe_float(entry.get("balance"), total_value)
-                available_raw = (
-                    entry.get("availableBalance")
-                    or entry.get("withdrawAvailable")
-                    or entry.get("crossWalletBalance")
-                    or entry.get("balance")
-                )
-                available_value = self._safe_float(available_raw, available_value)
-                break
-        self.total_balance = total_value
-        self.available_balance = available_value
-        self.balance = available_value
-        self._last_balance_refresh = now
-        self._risk_engine.on_balance_refresh(self.available_balance)
-        status_store.update_balance(available_value)
-        return available_value
+        snapshot = self.balance_manager.refresh_account_balance(force=force)
+        self.total_balance = snapshot.total
+        self.available_balance = snapshot.available
+        self.balance = snapshot.available
+        status_store.update_balance(snapshot.available)
+        return snapshot.available
 
-    def _submit_market_order(
-        self,
-        symbol: str,
-        side: str,
-        quantity: float,
-        *,
-        reduce_only: bool = False,
-        price: Optional[float] = None,
-    ) -> Optional[Dict[str, Any]]:
-        filters = self.exchange_info.get_filters(symbol)
-        attempt_qty = max(quantity, 0.0)
-        if reduce_only:
-            attempt_qty = self._resolve_reduce_only_quantity(symbol, side, attempt_qty, price, filters)
-            if attempt_qty <= 0:
-                return None
-        elif filters:
-            attempt_qty = filters.adjust_quantity(attempt_qty)
-        if attempt_qty <= 0:
-            self._log_order_skip(symbol, side, "non_positive_qty", reduce_only)
-            return None
-        for attempt in range(2):
-            payload = {
-                "symbol": symbol,
-                "side": side,
-                "type": "MARKET",
-                "quantity": self._format_quantity(attempt_qty),
-            }
-            if reduce_only:
-                payload["reduceOnly"] = "true"
-            self.order_logger.log({"event": "request", **payload})
-            try:
-                response = self.client.place_order(**payload)
-            except ExchangeRequestError as exc:
-                self.order_logger.log({"event": "error", "symbol": symbol, "message": str(exc)})
-                code = exc.code
-                self._log_client_order_error(symbol, side, attempt_qty, code, exc)
-                if code == -2019 and not reduce_only and attempt == 0:
-                    attempt_qty = self._reduce_quantity_after_margin_error(symbol, attempt_qty, filters)
-                    if attempt_qty <= 0:
-                        self._log_order_skip(symbol, side, "margin", reduce_only)
-                        return None
-                    continue
-                if code in self._TRANSIENT_ERRORS and attempt == 0:
-                    time.sleep(0.5)
-                    continue
-                return None
-            except Exception as exc:  # pragma: no cover - defensive
-                self.order_logger.log({"event": "error", "symbol": symbol, "message": str(exc)})
-                logger.error("%s order failed for %s: %s", side, symbol, exc)
-                return None
-            self.order_logger.log({"event": "response", **response})
-            return response
-        return None
 
     def _on_position_open_request(
         self,
@@ -191,20 +188,34 @@ class LiveTrader(MultiSymbolRunnerBase):
         position: PaperPosition,
         latest_row: Any,
         signal: StrategySignal,
+        order_request: OrderRequest | None = None,
     ) -> bool:
         del latest_row, signal
-        side = "BUY" if position.direction == 1 else "SELL"
-        response = self._submit_market_order(ctx.symbol, side, position.quantity)
-        if not response:
+        request = order_request or self._pending_order_requests.pop(ctx.symbol, None)
+        if request is None:
+            side = "BUY" if position.direction == 1 else "SELL"
+            filters = self.exchange_info.get_filters(ctx.symbol)
+            request = OrderRequest(
+                symbol=ctx.symbol,
+                side=side,
+                quantity=position.quantity,
+                order_type="MARKET",
+                reduce_only=False,
+                price=position.entry_price,
+                filters=filters,
+            )
+        try:
+            placed = self.order_manager.submit_order(request)
+        except OrderPlacementError as exc:
+            logger.warning("Entry order failed for %s: %s", ctx.symbol, exc)
             return False
-        avg_price = self._parse_price(response) or position.entry_price
-        position.entry_price = avg_price
-        executed_qty = self._parse_quantity(response)
-        if executed_qty and executed_qty > 0:
-            position.quantity = executed_qty
+        if placed.price is not None:
+            position.entry_price = placed.price
+        if placed.quantity > 0:
+            position.quantity = placed.quantity
         position.metadata.setdefault("indicators", {})
-        position.metadata["entry_order_id"] = response.get("orderId")
-        position.metadata["opened_at"] = self._timestamp_from_response(response)
+        position.metadata["entry_order_id"] = placed.order_id
+        position.metadata["opened_at"] = self._timestamp_from_response(placed.raw)
         return True
 
     def _on_position_close_request(
@@ -213,22 +224,38 @@ class LiveTrader(MultiSymbolRunnerBase):
         position: PaperPosition,
         exit_price: float,
         exit_reason: str,
+        order_request: OrderRequest | None = None,
     ) -> bool:
-        del exit_price, exit_reason
+        del exit_reason
+        self.balance_manager.sync_positions(force=True)
         side = "SELL" if position.direction == 1 else "BUY"
-        self._ensure_position_snapshot(force=True)
-        live_qty = self._live_position_quantity(ctx.symbol, position.direction)
+        live_qty = self.balance_manager.live_position_quantity(ctx.symbol, position.direction)
         if live_qty <= 0:
             self._clear_local_position(ctx, reason="exchange_flat")
             logger.info("Skipping reduce-only close for %s %s: no exchange position", ctx.symbol, ctx.timeframe)
             return False
         if position.quantity > live_qty:
             position.quantity = live_qty
-        response = self._submit_market_order(ctx.symbol, side, position.quantity, reduce_only=True, price=exit_price)
-        if not response:
+        request = order_request or self._pending_order_requests.pop(ctx.symbol, None)
+        if request is None:
+            filters = self.exchange_info.get_filters(ctx.symbol)
+            request = OrderRequest(
+                symbol=ctx.symbol,
+                side=side,
+                quantity=position.quantity,
+                order_type="MARKET",
+                reduce_only=True,
+                price=exit_price,
+                filters=filters,
+                tag="exit",
+            )
+        try:
+            placed = self.order_manager.submit_order(request)
+        except OrderPlacementError as exc:
+            logger.warning("Reduce-only close failed for %s: %s", ctx.symbol, exc)
             return False
-        position.metadata["exit_order_id"] = response.get("orderId")
-        position.metadata["closed_at"] = self._timestamp_from_response(response)
+        position.metadata["exit_order_id"] = placed.order_id
+        position.metadata["closed_at"] = self._timestamp_from_response(placed.raw)
         self._reconcile_after_reduce_only(ctx, position.direction)
         return True
 
@@ -246,12 +273,11 @@ class LiveTrader(MultiSymbolRunnerBase):
                 continue
             key = self._ctx_key(ctx)
             trade_samples = self.learning_store.trade_count(ctx.symbol, ctx.timeframe)
-            reinforcement_cfg = self._config.reinforcement
-            if trade_samples < reinforcement_cfg.min_trades_before_update:
+            if trade_samples < self._config.reinforcement.min_trades_before_update:
                 continue
             now = time.time()
             last_update = self._last_learning_update.get(key, 0.0)
-            if (now - last_update) < reinforcement_cfg.update_cooldown_seconds:
+            if (now - last_update) < self._config.reinforcement.update_cooldown_seconds:
                 continue
             cached = self._applied_learning.get(key)
             if cached == overrides:
@@ -271,7 +297,8 @@ class LiveTrader(MultiSymbolRunnerBase):
                 trade_samples,
             )
 
-    def _merge_parameters(self, current: StrategyParameters, overrides: Dict[str, Any]) -> StrategyParameters:
+    @staticmethod
+    def _merge_parameters(current: StrategyParameters, overrides: Dict[str, Any]) -> StrategyParameters:
         def _ival(key: str, fallback: int) -> int:
             raw = overrides.get(key, fallback)
             try:
@@ -348,7 +375,7 @@ class LiveTrader(MultiSymbolRunnerBase):
 
     def _max_trade_notional(self, ctx: MarketContext, price: float) -> float | None:
         filters = self.exchange_info.get_filters(ctx.symbol)
-        available = max(self.available_balance, 0.0)
+        available = max(self.balance_manager.available_balance, 0.0)
         if price <= 0 or available <= 0:
             return 0.0
         leverage_cap = filters.max_leverage if filters else self._config.risk.leverage
@@ -367,7 +394,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         return max_notional
 
     def _log_sizing_skip(self, ctx: MarketContext, reason: Optional[str]) -> None:
-        if reason == "margin" and not self._risk_engine.should_log_margin_block(ctx.symbol, self.available_balance):
+        if reason == "margin" and not self._risk_engine.should_log_margin_block(ctx.symbol, self.balance_manager.available_balance):
             return
         super()._log_sizing_skip(ctx, reason)
 
@@ -375,18 +402,16 @@ class LiveTrader(MultiSymbolRunnerBase):
         return self._estimate_equity()
 
     def _available_margin_for_risk(self) -> float:
-        return max(self.available_balance, 0.0)
+        return max(self.balance_manager.available_balance, 0.0)
 
     def _exposure_for_entry(self, ctx: MarketContext, price: float) -> Tuple[float, float, int, bool]:
-        state = self._risk_engine.compute_exposure(self._exchange_positions)
+        state = self._risk_engine.compute_exposure(self.balance_manager.exposure_payload())
         symbol_total = state.per_symbol.get(ctx.symbol, 0.0)
         active_symbols = sum(1 for value in state.per_symbol.values() if value > 0)
         return symbol_total, state.total, active_symbols, symbol_total > 0
 
     def _estimate_equity(self) -> float:
-        open_pnl = sum(float(pos.get("pnl", 0.0) or 0.0) for pos in self._last_position_snapshot)
-        baseline = max(self.total_balance, self.available_balance)
-        return max(baseline + open_pnl, 0.0)
+        return self.balance_manager.estimate_equity()
 
     @staticmethod
     def _safe_float(value: Any, fallback: float) -> float:
@@ -398,165 +423,41 @@ class LiveTrader(MultiSymbolRunnerBase):
         except (TypeError, ValueError):  # pragma: no cover - defensive
             return fallback
 
-    @staticmethod
-    def _format_quantity(quantity: float) -> str:
-        return f"{max(quantity, 0.0):.8f}"
-
-    @staticmethod
-    def _parse_quantity(response: Dict[str, Any]) -> Optional[float]:
-        for key in ("executedQty", "cumQty", "origQty", "quantity"):
-            raw = response.get(key)
-            if raw is None:
-                continue
-            try:
-                value = float(raw)
-            except (TypeError, ValueError):  # pragma: no cover - defensive
-                continue
-            if value > 0:
-                return value
-        return None
-
-    def _reduce_quantity_after_margin_error(self, symbol: str, quantity: float, filters: Optional[Any]) -> float:
-        del symbol
-        reduced = quantity * 0.5
-        if filters:
-            reduced = filters.adjust_quantity(reduced)
-            if reduced < filters.min_qty:
-                return 0.0
-        return reduced
-
-    def _log_order_skip(self, symbol: str, side: str, reason: str, reduce_only: bool) -> None:
-        mode = "reduce-only" if reduce_only else "market"
-        logger.info("[%s][%s] Skipping %s order: %s", symbol, side, mode, reason)
-
-    def _log_reduce_only_skip(self, symbol: str, side: str, reason: str) -> None:
-        cache_key = f"{symbol}:{side}:{reason}"
-        now = time.time()
-        if now - self._position_log_cache.get(cache_key, 0.0) < 5.0:
-            return
-        self._position_log_cache[cache_key] = now
-        logger.info("[%s][%s] Reduce-only skipped (%s)", symbol, side, reason)
-
-    def _log_client_order_error(self, symbol: str, side: str, quantity: float, code: Any, exc: Exception) -> None:
-        severity = logging.INFO if code in self._EXPECTED_WARNINGS else logging.WARNING
-        logger.log(
-            severity,
-            "[%s][%s] Order rejected qty=%.6f code=%s msg=%s",
-            symbol,
-            side,
-            quantity,
-            code,
-            exc,
-        )
-
-    def _resolve_reduce_only_quantity(
-        self,
-        symbol: str,
-        side: str,
-        requested: float,
-        price: Optional[float],
-        filters: Optional[Any],
-    ) -> float:
-        direction = 1 if side == "SELL" else -1
-        self._ensure_position_snapshot(force=True)
-        live_qty = self._live_position_quantity(symbol, direction)
-        if live_qty <= 0:
-            self._log_reduce_only_skip(symbol, side, "exchange_flat")
-            return 0.0
-        qty = min(requested, live_qty)
-        if filters:
-            qty = filters.adjust_quantity(qty)
-            mark_price = (
-                self._exchange_positions.get(symbol, {}).get("mark_price")
-                or self._exchange_positions.get(symbol, {}).get("entry_price")
-                or price
-                or 0.0
-            )
-            if qty < filters.min_qty or (mark_price * qty) < filters.min_notional:
-                self._log_reduce_only_skip(symbol, side, "min_notional")
-                return 0.0
-        return qty
-
     def _sync_live_positions_and_trades(self, *, force: bool = False, backfill_trades: bool = False) -> None:
-        snapshot = self._refresh_live_positions(force=force)
-        if snapshot is not None:
-            total_open = sum(float(pos.get("pnl", 0.0) or 0.0) for pos in snapshot)
-            status_store.set_positions(snapshot)
+        updated = self.balance_manager.sync_positions(force=force)
+        if updated is not None:
+            status_entries: List[Dict[str, Any]] = []
+            for symbol, snapshot in updated.items():
+                status_entry = self._format_exchange_status(snapshot)
+                if status_entry:
+                    status_entries.append(status_entry)
+            if not status_entries:
+                for ctx in self.contexts:
+                    self._clear_local_position(ctx, reason="exchange_flat")
+            total_open = sum(float(pos.get("pnl", 0.0) or 0.0) for pos in status_entries)
+            self._last_position_snapshot = status_entries
+            status_store.set_positions(status_entries)
             status_store.set_open_pnl(total_open)
-            self._publish_symbol_summaries(snapshot)
+            self._publish_symbol_summaries(status_entries)
         self._sync_recent_trades(force=force, backfill=backfill_trades)
 
-    def _refresh_live_positions(self, force: bool = False) -> Optional[List[Dict[str, Any]]]:
-        now = time.time()
-        if not force and (now - self._last_position_refresh) < self._position_refresh_interval:
-            return None
-        try:
-            payload = self.client.get_position_risk()
-        except ExchangeRequestError as exc:
-            logger.warning("Position risk refresh failed: %s", exc)
-            return None
-        positions: List[Dict[str, Any]] = []
-        active_symbols: set[str] = set()
-        for entry in payload or []:
-            status_entry = self._process_position_entry(entry)
-            if status_entry:
-                positions.append(status_entry)
-                active_symbols.add(status_entry["symbol"])
-        if not active_symbols:
-            for ctx in self.contexts:
-                self._exchange_positions.pop(ctx.symbol, None)
-                self._clear_local_position(ctx, reason="exchange_flat")
-        self._last_position_refresh = now
-        self._last_position_snapshot = positions
-        return positions
-
-    def _process_position_entry(self, entry: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        symbol = str(entry.get("symbol") or "").upper()
-        ctx = self._ctx_lookup.get(symbol)
+    def _format_exchange_status(self, snapshot: ExchangePosition) -> Optional[Dict[str, Any]]:
+        ctx = self._ctx_lookup.get(snapshot.symbol)
         if not ctx:
             return None
-        position_side = (entry.get("positionSide") or "BOTH").upper()
-        if position_side not in {"BOTH", "LONG", "SHORT"}:
-            return None
-        raw_qty = self._safe_float(entry.get("positionAmt"), 0.0)
-        min_qty = self._exchange_min_qty(symbol)
-        if abs(raw_qty) < max(min_qty, 1e-6):
-            self._exchange_positions.pop(symbol, None)
-            self._clear_local_position(ctx, reason="exchange_flat")
-            return None
-        direction = 1 if raw_qty > 0 else -1
-        quantity = abs(raw_qty)
-        entry_price = self._safe_float(entry.get("entryPrice"), 0.0)
-        if entry_price <= 0:
-            entry_price = self._safe_float(entry.get("markPrice"), 0.0)
-        mark_price = self._safe_float(entry.get("markPrice"), entry_price)
-        pnl = self._safe_float(
-            entry.get("unRealizedProfit"),
-            (mark_price - entry_price) * direction * quantity,
-        )
-        leverage = self._safe_float(entry.get("leverage"), self._config.risk.leverage)
-        self._exchange_positions[symbol] = {
-            "quantity": quantity,
-            "direction": direction,
-            "min_qty": max(min_qty, 1e-6),
-            "entry_price": entry_price,
-            "mark_price": mark_price,
-            "notional": quantity * mark_price,
-            "timestamp": time.time(),
-        }
-        self._ensure_ctx_position_alignment(ctx, entry, direction, quantity, entry_price)
+        self._ensure_ctx_position_alignment(ctx, snapshot)
         metadata = ctx.position.metadata if ctx.position else {}
         sizing_meta = metadata.get("sizing", {}) if metadata else {}
         return {
             "symbol": ctx.symbol,
             "timeframe": ctx.timeframe,
-            "side": "LONG" if direction == 1 else "SHORT",
-            "quantity": quantity,
-            "entry_price": entry_price,
-            "mark_price": mark_price,
-            "pnl": pnl,
-            "position_side": position_side,
-            "leverage": leverage,
+            "side": "LONG" if snapshot.direction == 1 else "SHORT",
+            "quantity": snapshot.quantity,
+            "entry_price": snapshot.entry_price,
+            "mark_price": snapshot.mark_price,
+            "pnl": snapshot.pnl,
+            "position_side": snapshot.position_side,
+            "leverage": snapshot.leverage,
             "sizing_mode": sizing_meta.get("mode", self._config.sizing.mode),
             "stop_loss": ctx.position.stop_loss if ctx.position else None,
             "take_profit": ctx.position.take_profit if ctx.position else None,
@@ -571,18 +472,12 @@ class LiveTrader(MultiSymbolRunnerBase):
             return 0.0
         return max(filters.min_qty, 0.0)
 
-    def _ensure_ctx_position_alignment(
-        self,
-        ctx: MarketContext,
-        entry: Dict[str, Any],
-        direction: int,
-        quantity: float,
-        entry_price: float,
-    ) -> None:
-        timestamp = entry.get("updateTime") or entry.get("time") or time.time() * 1000
-        mark_price = self._safe_float(entry.get("markPrice"), entry_price)
-        if entry_price <= 0:
-            entry_price = mark_price
+    def _ensure_ctx_position_alignment(self, ctx: MarketContext, snapshot: ExchangePosition) -> None:
+        direction = snapshot.direction
+        quantity = snapshot.quantity
+        entry_price = snapshot.entry_price or snapshot.mark_price
+        mark_price = snapshot.mark_price or entry_price
+        timestamp = snapshot.timestamp * 1000
         if ctx.position is None:
             stop_loss, take_profit = self._synthetic_levels(ctx, direction, entry_price)
             ctx.position = PaperPosition(
@@ -601,7 +496,7 @@ class LiveTrader(MultiSymbolRunnerBase):
             ctx.position.quantity = quantity
             ctx.position.entry_price = entry_price
             ctx.position.metadata.setdefault("sizing", {}).setdefault("mode", self._config.sizing.mode)
-        if ctx.position.metadata.get("synced"):
+        if ctx.position and ctx.position.metadata.get("synced"):
             stop_loss, take_profit = self._synthetic_levels(ctx, direction, entry_price)
             ctx.position.stop_loss = stop_loss
             ctx.position.take_profit = take_profit
@@ -620,7 +515,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         frame = self._latest_frames.get(ctx.symbol)
         if frame is None or frame.empty:
             return 0.0
-        snapshot = volatility_snapshot(frame)
+        snapshot = volatility_snapshot(frame, self._config)
         return float(snapshot.get("atr", 0.0) or 0.0)
 
     def _clear_local_position(self, ctx: MarketContext, *, reason: str) -> None:
@@ -630,22 +525,13 @@ class LiveTrader(MultiSymbolRunnerBase):
         logger.info("Cleared local %s %s position (%s)", ctx.symbol, ctx.timeframe, reason)
 
     def _reconcile_after_reduce_only(self, ctx: MarketContext, direction: int) -> None:
-        self._sync_live_positions_and_trades(force=True)
-        live_qty = self._live_position_quantity(ctx.symbol, direction)
+        self.balance_manager.sync_positions(force=True)
+        live_qty = self.balance_manager.live_position_quantity(ctx.symbol, direction)
         if live_qty <= 0:
             self._clear_local_position(ctx, reason="exchange_closed")
             return
         if ctx.position:
             ctx.position.quantity = live_qty
-
-    def _ensure_position_snapshot(self, *, force: bool = False) -> None:
-        self._refresh_live_positions(force=force)
-
-    def _live_position_quantity(self, symbol: str, direction: int) -> float:
-        info = self._exchange_positions.get(symbol)
-        if info and info.get("direction") == direction and info.get("quantity", 0.0) > info.get("min_qty", 0.0):
-            return float(info.get("quantity", 0.0))
-        return 0.0
 
     def _sync_recent_trades(self, *, force: bool = False, backfill: bool = False) -> None:
         now = time.time()

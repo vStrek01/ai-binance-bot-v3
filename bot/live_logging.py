@@ -6,15 +6,15 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-from bot import config
+from bot.core.config import BotConfig, ensure_directories
 
 
 class OrderAuditLogger:
     """Append-only JSONL logger for order requests and responses."""
 
-    def __init__(self, path: Path | None = None) -> None:
-        config.ensure_directories([config.LOG_DIR])
-        self.path = path or (config.LOG_DIR / "live_orders.log")
+    def __init__(self, cfg: BotConfig, path: Path | None = None) -> None:
+        ensure_directories(cfg.paths, extra=[cfg.paths.log_dir])
+        self.path = path or (cfg.paths.log_dir / "live_orders.log")
 
     def log(self, payload: Dict[str, Any]) -> None:
         record = json.dumps(payload, default=str)
@@ -41,10 +41,15 @@ class LiveTradeLogger:
         "exit_order_id",
     )
 
-    def __init__(self, csv_path: Path | None = None, jsonl_path: Path | None = None) -> None:
-        config.ensure_directories([config.LOG_DIR])
-        self.csv_path = csv_path or (config.LOG_DIR / "live_trades.csv")
-        self.jsonl_path = jsonl_path or (config.LOG_DIR / "live_trades.jsonl")
+    def __init__(
+        self,
+        cfg: BotConfig,
+        csv_path: Path | None = None,
+        jsonl_path: Path | None = None,
+    ) -> None:
+        ensure_directories(cfg.paths, extra=[cfg.paths.log_dir])
+        self.csv_path = csv_path or (cfg.paths.log_dir / "live_trades.csv")
+        self.jsonl_path = jsonl_path or (cfg.paths.log_dir / "live_trades.jsonl")
 
     def log(self, trade: Dict[str, Any]) -> None:
         self._append_jsonl(trade)

@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import statistics
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from bot.core import config
+from bot.core.config import BotConfig, ensure_directories
 from bot.rl.agents import ActorCriticAgent
 from bot.rl.env import FuturesTradingEnv
 from bot.rl.policy_store import RLPolicyStore
@@ -19,12 +19,15 @@ class RLTrainer:
         self,
         env: FuturesTradingEnv,
         agent: ActorCriticAgent,
-        checkpoint_dir: Path | None = None,
+        cfg: BotConfig,
+        checkpoint_dir: Optional[Path] = None,
     ) -> None:
         self.env = env
         self.agent = agent
-        self.checkpoint_dir = checkpoint_dir or config.rl.checkpoint_dir
+        ensure_directories(cfg.paths, extra=[cfg.paths.optimization_dir])
+        self.checkpoint_dir = checkpoint_dir or (cfg.paths.optimization_dir / cfg.rl.checkpoint_dir_name)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self._config = cfg
 
     def train(self, episodes: int, checkpoint_interval: int = 25) -> Dict[str, float]:
         rewards: List[float] = []
@@ -56,7 +59,7 @@ class RLTrainer:
                     statistics.mean(rewards) if rewards else 0.0,
                 )
         params = self.env.derive_parameters()
-        RLPolicyStore().save(self.env.symbol, self.env.interval, params)
+        RLPolicyStore(self._config).save(self.env.symbol, self.env.interval, params)
         return {
             "episodes": float(episodes),
             "avg_reward": statistics.mean(rewards) if rewards else 0.0,

@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 from binance.um_futures import UMFutures  # type: ignore[import-untyped]
 
-from bot.core.config import BotConfig
+from bot.core.config import BotConfig, RuntimeConfig
 from bot.core.secrets import SecretNotConfiguredError, get_binance_api_key, get_binance_api_secret
 from bot.execution.exchange_client import ExchangeClient
 from bot.utils.logger import get_logger
@@ -48,7 +48,7 @@ def _determine_trading_profile(cfg: BotConfig) -> ClientProfile:
             trading=True,
         )
     if runtime.live_trading:
-        _ensure_live_confirmation(cfg)
+        _ensure_live_confirmation(runtime)
         logger.warning("Initializing LIVE Binance client. Proceed with extreme caution.")
         return ClientProfile(
             label="live",
@@ -59,8 +59,7 @@ def _determine_trading_profile(cfg: BotConfig) -> ClientProfile:
     raise RuntimeError("Trading client requested but neither testnet nor live trading is enabled in the runtime config.")
 
 
-def _ensure_live_confirmation(cfg: BotConfig) -> None:
-    runtime = cfg.runtime
+def _ensure_live_confirmation(runtime: RuntimeConfig) -> None:
     if not runtime.require_live_confirmation:
         return
     env_flag = runtime.live_confirmation_env or "BOT_CONFIRM_LIVE"

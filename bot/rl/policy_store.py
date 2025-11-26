@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional
 
-from bot.core import config
+from bot.core.config import BotConfig, ensure_directories
 from bot.utils.fileio import atomic_write_text
 from bot.utils.logger import get_logger
 
@@ -13,9 +13,9 @@ logger = get_logger(__name__)
 
 
 class RLPolicyStore:
-    def __init__(self, path: Optional[Path] = None) -> None:
-        config.ensure_directories([config.OPTIMIZATION_DIR])
-        self.path = path or (config.OPTIMIZATION_DIR / "rl_policies.json")
+    def __init__(self, cfg: BotConfig, path: Optional[Path] = None) -> None:
+        ensure_directories(cfg.paths, extra=[cfg.paths.optimization_dir])
+        self.path = path or (cfg.paths.optimization_dir / "rl_policies.json")
         self._payload: Dict[str, Dict[str, float]] = self._load()
 
     def _load(self) -> Dict[str, Dict[str, float]]:

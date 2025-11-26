@@ -10,7 +10,9 @@ from typing import Dict, Optional
 
 import pandas as pd
 
-from bot import config, data, indicators
+from bot.core.config import BotConfig
+from bot.data import fetch_recent_candles
+from bot.signals import indicators
 from bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -29,13 +31,14 @@ class ExternalSignalSnapshot:
 class ExternalSignalProvider:
     """Lightweight signal aggregator with pluggable data sources."""
 
-    def __init__(self) -> None:
+    def __init__(self, cfg: BotConfig) -> None:
+        self._config = cfg
         self.sentiment_file = os.getenv("BOT_SENTIMENT_FILE")
         self.news_file = os.getenv("BOT_NEWS_FILE")
         self.onchain_file = os.getenv("BOT_ONCHAIN_FILE")
 
     def snapshot(self, symbol: str) -> ExternalSignalSnapshot:
-        cfg = config.external_signals
+        cfg = self._config.external_signals
         if not cfg.enabled:
             return ExternalSignalSnapshot()
         warnings: list[str] = []
@@ -45,11 +48,7 @@ class ExternalSignalProvider:
         if math.isclose(sentiment, 0.0) and math.isclose(news, 0.0) and math.isclose(onchain, 0.0):
             # Fallback to price-derived proxy when no external data is provided.
             sentiment, news, onchain = self._price_proxy_scores(symbol, warnings)
-        combined = (
-            sentiment * cfg.sentiment_weight
-            + news * cfg.news_weight
-            + onchain * cfg.onchain_weight
-        )
+        combined = sentiment * cfg.sentiment_weight + news * cfg.news_weight + onchain * cfg.onchain_weight
         regime = self._detect_regime(symbol, warnings)
         snapshot = ExternalSignalSnapshot(
             sentiment=sentiment,
@@ -90,7 +89,7 @@ class ExternalSignalProvider:
 
     def _price_proxy_scores(self, symbol: str, warnings: list[str]) -> tuple[float, float, float]:
         try:
-            candles = data.fetch_recent_candles(symbol, "5m", limit=120)
+            candles = fetch_recent_candles(self._config, symbol, "5m", limit=120)
         except Exception as exc:  # noqa: BLE001
             warnings.append(f"price_proxy_failed:{exc}")
             return 0.0, 0.0, 0.0
@@ -108,7 +107,7 @@ class ExternalSignalProvider:
 
     def _detect_regime(self, symbol: str, warnings: list[str]) -> str:
         try:
-            candles = data.fetch_recent_candles(symbol, "15m", limit=200)
+            candles = fetch_recent_candles(self._config, symbol, "15m", limit=200)
         except Exception as exc:  # noqa: BLE001
             warnings.append(f"regime_failed:{exc}")
             return "neutral"

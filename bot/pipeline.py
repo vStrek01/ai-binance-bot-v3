@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import socket
-from typing import Iterable, List, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 import uvicorn
-from bot import config, data
+from bot import data
 from bot.backtester import Backtester
+from bot.core.config import BotConfig, ensure_directories
 from bot.execution.client_factory import build_data_client
 from bot.exchange_info import ExchangeInfoManager
 from bot.optimizer import Optimizer, load_best_parameters
@@ -24,26 +25,29 @@ class FullCycleRunner:
 
     def __init__(
         self,
+        cfg: BotConfig,
         symbols: Sequence[str] | None = None,
         timeframes: Sequence[str] | None = None,
     ) -> None:
-        self.exchange = ExchangeInfoManager(client=build_data_client())
+        self._config = cfg
+        self.exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
         if not self.exchange.symbols:
             logger.info("Exchange info cache empty; refreshing metadata")
             self.exchange.refresh(force=True)
         self.symbols = list(symbols) if symbols else sorted(self.exchange.symbols.keys())
         if not self.symbols:
             raise RuntimeError("No USDC symbols available in exchange info cache")
-        self.timeframes = list(timeframes or config.TIMEFRAMES)
+        self.timeframes = list(timeframes or cfg.universe.timeframes)
         if not self.timeframes:
             raise RuntimeError("No timeframes configured")
         self.market_pairs: List[Tuple[str, str]] = [(sym, tf) for sym in self.symbols for tf in self.timeframes]
         self.ready_markets: List[Tuple[str, str]] = []
 
     def run(self) -> None:
+        cfg = self._config
         logger.info("Starting full learning cycle for %s symbols x %s timeframes", len(self.symbols), len(self.timeframes))
-        config.ensure_directories()
-        status_store.update_balance(config.runtime.paper_account_balance)
+        ensure_directories(cfg.paths)
+        status_store.update_balance(cfg.runtime.paper_account_balance)
         status_store.set_open_pnl(0.0)
         status_store.set_positions([])
         try:
@@ -63,7 +67,7 @@ class FullCycleRunner:
         status_store.set_progress(0, total)
         for idx, (symbol, timeframe) in enumerate(self.market_pairs, start=1):
             try:
-                data.ensure_local_candles(symbol, timeframe, min_rows=config.runtime.lookback_limit)
+                data.ensure_local_candles(self._config, symbol, timeframe, min_rows=self._config.runtime.lookback_limit)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Download failed for %s %s: %s", symbol, timeframe, exc)
             finally:
@@ -76,12 +80,17 @@ class FullCycleRunner:
         status_store.set_progress(0, total)
         for idx, (symbol, timeframe) in enumerate(self.market_pairs, start=1):
             try:
-                frame = data.load_local_candles(symbol, timeframe)
+                frame = data.load_local_candles(self._config, symbol, timeframe)
                 data.validate_candles(frame, symbol, timeframe)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Validation failed for %s %s: %s", symbol, timeframe, exc)
                 try:
-                    refreshed = data.download_klines(symbol, timeframe, limit=config.runtime.lookback_limit)
+                    refreshed = data.download_klines(
+                        self._config,
+                        symbol,
+                        timeframe,
+                        limit=self._config.runtime.lookback_limit,
+                    )
                     data.validate_candles(refreshed, symbol, timeframe)
                 except Exception as retry_exc:  # noqa: BLE001
                     logger.error("Unable to repair dataset %s %s: %s", symbol, timeframe, retry_exc)
@@ -90,14 +99,14 @@ class FullCycleRunner:
         status_store.clear_progress()
 
     def _warmup_backtests(self) -> None:
-        defaults = build_parameters()
+        defaults = build_parameters(self._config)
         total = len(self.market_pairs)
         status_store.set_mode("backtest", None, None)
         status_store.set_progress(0, total)
-        backtester = Backtester(self.exchange)
+        backtester = Backtester(self._config, self.exchange)
         for idx, (symbol, timeframe) in enumerate(self.market_pairs, start=1):
             try:
-                candles = data.load_local_candles(symbol, timeframe)
+                candles = data.load_local_candles(self._config, symbol, timeframe)
             except FileNotFoundError:
                 logger.warning("Skipping baseline backtest; candles missing for %s %s", symbol, timeframe)
                 status_store.set_progress(idx, total)
@@ -129,29 +138,29 @@ class FullCycleRunner:
             return
         symbols = sorted({sym for sym, _ in self.ready_markets})
         timeframes = sorted({tf for _, tf in self.ready_markets})
-        optimizer = Optimizer(symbols, timeframes, pairs=self.ready_markets)
+        optimizer = Optimizer(symbols, timeframes, pairs=self.ready_markets, cfg=self._config)
         optimizer.run()
 
     def _build_market_params(self) -> List[Tuple[str, str, StrategyParameters]]:
         markets = self.ready_markets or self.market_pairs
         plans: List[Tuple[str, str, StrategyParameters]] = []
         for symbol, timeframe in markets:
-            overrides = load_best_parameters(symbol, timeframe)
+            overrides = load_best_parameters(self._config, symbol, timeframe)
             if overrides:
                 logger.info("Using optimized parameters for %s %s", symbol, timeframe)
             else:
                 logger.info("Falling back to default parameters for %s %s", symbol, timeframe)
-            plans.append((symbol, timeframe, build_parameters(overrides)))
+            plans.append((symbol, timeframe, build_parameters(self._config, overrides)))
         return plans
 
     async def _launch_runtime(self, markets: Sequence[Tuple[str, str, StrategyParameters]]) -> None:
-        runner = MultiSymbolDryRunner(markets, self.exchange)
+        runner = MultiSymbolDryRunner(markets, self.exchange, self._config)
         await asyncio.gather(runner.run(), self._serve_dashboard())
 
     async def _serve_dashboard(self) -> None:
-        config.ensure_directories()
-        host = "127.0.0.1"
-        port = 8000
+        ensure_directories(self._config.paths)
+        host = self._config.runtime.api_host
+        port = self._config.runtime.api_port
         if not _port_available(host, port):
             logger.warning("Dashboard server skipped; %s:%s already in use", host, port)
             return

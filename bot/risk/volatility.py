@@ -8,7 +8,7 @@ from bot.core.config import BotConfig
 from bot.signals import indicators
 
 
-def snapshot(cfg: BotConfig, frame: pd.DataFrame) -> dict[str, float]:
+def snapshot(frame: pd.DataFrame, cfg: BotConfig) -> dict[str, float]:
     atr_series = indicators.atr(frame, cfg.sizing.atr_period)
     atr_value = float(atr_series.iloc[-1]) if not atr_series.empty and not math.isnan(atr_series.iloc[-1]) else 0.0
     std_window = min(len(frame), cfg.sizing.std_window)
