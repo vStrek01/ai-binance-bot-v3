@@ -7,6 +7,8 @@ from typing import Dict, List, Optional
 from core.models import OrderFill, Position, Side
 from infra.logging import logger
 
+MAX_POSITION_PCT = 0.2
+
 
 @dataclass
 class PositionManager:
@@ -33,9 +35,22 @@ class PositionManager:
             self.positions[symbol] = pos
             logger.info("Opened position", extra={"position": pos.model_dump()})
         else:
+            if pos.has_added_once:
+                logger.warning("Add-on blocked: already added once", extra={"symbol": symbol})
+                return
+            projected_qty = pos.quantity + fill.filled_qty
+            notional = abs(projected_qty * fill.avg_price)
+            max_notional = self.equity * MAX_POSITION_PCT
+            if max_notional > 0 and notional > max_notional:
+                logger.warning(
+                    "Add-on blocked: position cap",
+                    extra={"symbol": symbol, "notional": notional, "max_notional": max_notional},
+                )
+                return
             total_qty = pos.quantity + fill.filled_qty
             pos.entry_price = (pos.entry_price * pos.quantity + fill.avg_price * fill.filled_qty) / total_qty
             pos.quantity = total_qty
+            pos.has_added_once = True
             logger.info("Added to position", extra={"position": pos.model_dump()})
 
     def close_position(self, symbol: str, exit_price: float):

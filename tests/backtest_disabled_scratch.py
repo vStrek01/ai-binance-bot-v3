@@ -82,9 +82,7 @@ def test_backtest_equity_grows_on_trend():
 
 def test_strategy_stays_flat_in_sideways_range():
     candles = generate_sideways_candles()
-    # Require higher conviction so the simplified MA crossover stays flat in chop.
-    conservative_cfg = IndicatorConfig(min_confidence=0.7)
-    strategy = Strategy(conservative_cfg, llm_adapter=None)
+    strategy = Strategy(IndicatorConfig(), llm_adapter=None)
     risk = RiskManager(RiskConfig(max_risk_per_trade_pct=0.01))
     pm = PositionManager()
     runner = BacktestRunner(strategy, risk, pm, initial_equity=10000)

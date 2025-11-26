@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,24 +13,51 @@ from infra.logging import logger
 
 @dataclass
 class IndicatorConfig:
-    fast_ma: int = 9
-    slow_ma: int = 21
+    fast_ema: int = 13
+    slow_ema: int = 34
+    rsi_length: int = 14
+    rsi_overbought: float = 60.0
+    rsi_oversold: float = 40.0
+    atr_period: int = 14
+    atr_stop: float = 1.6
+    atr_target: float = 2.2
+    cooldown_bars: int = 2
+    hold_bars: int = 90
+    pullback_atr_multiplier: float = 1.0
+    pullback_rsi_threshold: float = 50.0
+    trend_strength_threshold: float = 0.3
     min_confidence: float = 0.55
 
 
 class Strategy:
-    def __init__(self, indicator_config: IndicatorConfig, llm_adapter: Optional[LLMAdapter] = None):
-        self.config = indicator_config
+    def __init__(
+        self,
+        indicator_config: IndicatorConfig,
+        llm_adapter: Optional[LLMAdapter] = None,
+        optimized_params: Optional[Dict[str, Any]] = None,
+    ):
+        self._base_config = indicator_config
         self.llm_adapter = llm_adapter
+        self.optimized_params = optimized_params or {}
+        self.config = self._merge_config(self._base_config, self.optimized_params)
+
+    def _merge_config(self, config: IndicatorConfig, overrides: Dict[str, Any]) -> IndicatorConfig:
+        if not overrides:
+            return config
+        config_dict = asdict(config)
+        for key, value in overrides.items():
+            if key in config_dict and value is not None:
+                config_dict[key] = value
+        return IndicatorConfig(**config_dict)
 
     def _compute_ma_signal(self, candles: List[Candle]) -> Signal:
         closes = [c.close for c in candles]
-        if len(closes) < self.config.slow_ma:
+        if len(closes) < self.config.slow_ema:
             return Signal(action=Side.FLAT, confidence=0.0, reason="insufficient data")
 
         close_series = pd.Series(closes)
-        fast = close_series.rolling(self.config.fast_ma).mean().iloc[-1]
-        slow = close_series.rolling(self.config.slow_ma).mean().iloc[-1]
+        fast = close_series.rolling(self.config.fast_ema).mean().iloc[-1]
+        slow = close_series.rolling(self.config.slow_ema).mean().iloc[-1]
 
         if np.isnan(fast) or np.isnan(slow):
             return Signal(action=Side.FLAT, confidence=0.0, reason="insufficient data")

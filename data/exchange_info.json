@@ -17,7 +17,7 @@
   },
   "BCHUSDT": {
     "min_qty": 0.001,
-    "min_notional": 5.0,
+    "min_notional": 20.0,
     "step_size": 0.001,
     "tick_size": 0.01,
     "max_leverage": 20.0,
@@ -31,17 +31,9 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "EOSUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "LTCUSDT": {
     "min_qty": 0.001,
-    "min_notional": 5.0,
+    "min_notional": 20.0,
     "step_size": 0.001,
     "tick_size": 0.01,
     "max_leverage": 20.0,
@@ -57,7 +49,7 @@
   },
   "ETCUSDT": {
     "min_qty": 0.01,
-    "min_notional": 5.0,
+    "min_notional": 20.0,
     "step_size": 0.01,
     "tick_size": 0.001,
     "max_leverage": 20.0,
@@ -65,7 +57,7 @@
   },
   "LINKUSDT": {
     "min_qty": 0.01,
-    "min_notional": 5.0,
+    "min_notional": 20.0,
     "step_size": 0.01,
     "tick_size": 0.001,
     "max_leverage": 20.0,
@@ -84,6 +76,14 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "XMRUSDT": {
+    "min_qty": 0.001,
+    "min_notional": 5.0,
+    "step_size": 0.001,
+    "tick_size": 0.01,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -376,9 +376,9 @@
     "quote_asset": "USDT"
   },
   "SOLUSDT": {
-    "min_qty": 1.0,
+    "min_qty": 0.01,
     "min_notional": 5.0,
-    "step_size": 1.0,
+    "step_size": 0.01,
     "tick_size": 0.01,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -396,6 +396,14 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BLZUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -432,14 +440,6 @@
     "quote_asset": "USDT"
   },
   "FLMUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "TOMOUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -519,14 +519,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "CTKUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "AXSUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -567,27 +559,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BNTUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "1INCHUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "UNFIUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -616,6 +592,14 @@
     "quote_asset": "USDT"
   },
   "LITUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "UNFIUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
@@ -712,10 +696,10 @@
     "quote_asset": "USDT"
   },
   "LINAUSDT": {
-    "min_qty": 1.0,
+    "min_qty": 0.1,
     "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
+    "step_size": 0.1,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -775,6 +759,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "SCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "DGBUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -815,14 +807,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "MASKUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "IOTXUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -831,7 +815,15 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "AUDIOUSDT": {
+  "RAYUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "C98USDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -839,7 +831,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "C98USDT": {
+  "MASKUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -943,14 +935,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ANTUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "ROSEUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1015,6 +999,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "FTTUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "JASMYUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1039,14 +1031,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "XMRUSDT": {
-    "min_qty": 0.001,
-    "min_notional": 5.0,
-    "step_size": 0.001,
-    "tick_size": 0.01,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "INJUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
@@ -1064,7 +1048,7 @@
     "quote_asset": "USDT"
   },
   "SPELLUSDT": {
-    "min_qty": 100.0,
+    "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-07,
@@ -1095,19 +1079,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "CVXUSDT": {
+  "ICPUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "FOOTBALLUSDT": {
-    "min_qty": 0.01,
-    "min_notional": 5.0,
-    "step_size": 0.01,
-    "tick_size": 0.01,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1127,11 +1103,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BLUEBIRDUSDT": {
-    "min_qty": 0.1,
+  "FETUSDT": {
+    "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.001,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1160,7 +1136,7 @@
     "quote_asset": "USDT"
   },
   "TUSDT": {
-    "min_qty": 0.0,
+    "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-05,
@@ -1191,14 +1167,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "PHBUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "AGIXUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1207,7 +1175,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "FETUSDT": {
+  "PHBUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -1235,6 +1203,14 @@
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BNXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -1271,6 +1247,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "TRUUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "LQTYUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
@@ -1287,14 +1271,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ARBUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "IDUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1303,11 +1279,27 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "ARBUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "JOEUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "TLMUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1324,14 +1316,6 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-07,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "TRUUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1383,6 +1367,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "SUIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "1000PEPEUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1399,19 +1391,19 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "RADUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "UMAUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RADUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1424,14 +1416,6 @@
     "quote_asset": "USDT"
   },
   "COMBOUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "SUIUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
@@ -1516,6 +1500,14 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BNTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1703,6 +1695,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "TWTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "TOKENUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -1748,14 +1748,6 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "MBLUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1856,9 +1848,9 @@
     "quote_asset": "USDT"
   },
   "ACEUSDT": {
-    "min_qty": 1.0,
+    "min_qty": 0.01,
     "min_notional": 5.0,
-    "step_size": 1.0,
+    "step_size": 0.01,
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -1868,14 +1860,6 @@
     "min_notional": 5.0,
     "step_size": 0.01,
     "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "TWTUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -1911,19 +1895,19 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "XRPUSDC": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
   "SOLUSDC": {
     "min_qty": 0.01,
     "min_notional": 5.0,
     "step_size": 0.01,
     "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "XRPUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
@@ -1968,9 +1952,9 @@
     "quote_asset": "USDT"
   },
   "ONDOUSDT": {
-    "min_qty": 1.0,
+    "min_qty": 0.1,
     "min_notional": 5.0,
-    "step_size": 1.0,
+    "step_size": 0.1,
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -2015,14 +1999,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "SUIUSDC": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
   "DYMUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
@@ -2030,6 +2006,14 @@
     "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
+  },
+  "SUIUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
   },
   "OMUSDT": {
     "min_qty": 0.1,
@@ -2055,14 +2039,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ORDIUSDC": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
   "STRKUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
@@ -2071,13 +2047,13 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "MAVIAUSDT": {
-    "min_qty": 1.0,
+  "ORDIUSDC": {
+    "min_qty": 0.1,
     "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
+    "step_size": 0.1,
+    "tick_size": 0.001,
     "max_leverage": 20.0,
-    "quote_asset": "USDT"
+    "quote_asset": "USDC"
   },
   "GLMUSDT": {
     "min_qty": 1.0,
@@ -2167,6 +2143,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "ETHFIUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "AVAXUSDC": {
     "min_qty": 0.01,
     "min_notional": 5.0,
@@ -2183,14 +2167,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "ETHFIUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "ENAUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -2199,13 +2175,13 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BCHUSDC": {
-    "min_qty": 0.001,
+  "WUSDT": {
+    "min_qty": 0.1,
     "min_notional": 5.0,
-    "step_size": 0.001,
-    "tick_size": 0.01,
+    "step_size": 0.1,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
-    "quote_asset": "USDC"
+    "quote_asset": "USDT"
   },
   "WIFUSDC": {
     "min_qty": 0.1,
@@ -2215,13 +2191,13 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "WUSDT": {
-    "min_qty": 0.1,
+  "BCHUSDC": {
+    "min_qty": 0.001,
     "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 1e-05,
+    "step_size": 0.001,
+    "tick_size": 0.01,
     "max_leverage": 20.0,
-    "quote_asset": "USDT"
+    "quote_asset": "USDC"
   },
   "TNSRUSDT": {
     "min_qty": 0.1,
@@ -2239,14 +2215,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "NEARUSDC": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
   "LTCUSDC": {
     "min_qty": 0.001,
     "min_notional": 5.0,
@@ -2255,11 +2223,27 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
+  "NEARUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
   "TAOUSDT": {
     "min_qty": 0.001,
     "min_notional": 5.0,
     "step_size": 0.001,
     "tick_size": 0.01,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "OMNIUSDT": {
+    "min_qty": 0.01,
+    "min_notional": 5.0,
+    "step_size": 0.01,
+    "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -2272,9 +2256,9 @@
     "quote_asset": "USDC"
   },
   "NEOUSDC": {
-    "min_qty": 0.01,
+    "min_qty": 0.001,
     "min_notional": 5.0,
-    "step_size": 0.01,
+    "step_size": 0.001,
     "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
@@ -2287,27 +2271,19 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "OMNIUSDT": {
-    "min_qty": 0.01,
+  "TIAUSDC": {
+    "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.01,
-    "tick_size": 0.001,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
-    "quote_asset": "USDT"
+    "quote_asset": "USDC"
   },
   "BOMEUSDC": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-07,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
-  "TIAUSDC": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
@@ -2319,18 +2295,18 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ETHFIUSDC": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
   "ENAUSDC": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "ETHFIUSDC": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
@@ -2583,14 +2559,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "AERGOUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "POLUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -2607,7 +2575,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "NEIROUSDT": {
+  "1MBABYDOGEUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2615,7 +2583,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "1MBABYDOGEUSDT": {
+  "NEIROUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2775,19 +2743,19 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "CETUSUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "COWUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CETUSUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -2823,7 +2791,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "PNUTUSDT": {
+  "ACTUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2831,7 +2799,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ACTUSDT": {
+  "PNUTUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2895,7 +2863,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "1000WHYUSDT": {
+  "1000CHEEMSUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2903,7 +2871,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "1000CHEEMSUSDT": {
+  "1000WHYUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -2983,6 +2951,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "KOMAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "VIRTUALUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
@@ -2999,27 +2975,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "KOMAUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "MEUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
     "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "ABCCCUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3087,22 +3047,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "KMNOUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "CGPTUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "AIXBTUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -3116,6 +3060,22 @@
     "min_notional": 5.0,
     "step_size": 0.1,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "KMNOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CGPTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3295,7 +3255,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "PIPPINUSDT": {
+  "VINEUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -3303,7 +3263,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "VINEUSDT": {
+  "PIPPINUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -3399,27 +3359,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "HBARUSDC": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
-  "PNUTUSDC": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDC"
-  },
-  "ADAUSDC": {
+  "IPUSDC": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
-    "tick_size": 0.0001,
+    "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
@@ -3431,11 +3375,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
-  "IPUSDC": {
+  "ADAUSDC": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
-    "tick_size": 0.001,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
   },
@@ -3446,6 +3390,22 @@
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
+  },
+  "PNUTUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
+  },
+  "HBARUSDC": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDC"
   },
   "VICUSDT": {
     "min_qty": 1.0,
@@ -3487,18 +3447,18 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "TUTUSDT": {
+  "BIDUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
+    "step_size": 1.0,
     "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BIDUSDT": {
+  "TUTUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
+    "step_size": 1.0,
     "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -3519,14 +3479,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BANANAS31USDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "SIRENUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -3535,11 +3487,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BNXUSDT": {
-    "min_qty": 0.1,
+  "BANANAS31USDT": {
+    "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3559,7 +3511,31 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "NILUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PARTIUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "JELLYJELLYUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "MAVIAUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -3596,6 +3572,14 @@
     "min_notional": 5.0,
     "step_size": 0.01,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "GUNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3639,14 +3623,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "PUMPUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "STOUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -3671,11 +3647,27 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "WCTUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "INITUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "AERGOUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3743,39 +3735,15 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "WCTUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "GUNUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "PARTIUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "NILUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "PUNDIXUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "CTKUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -3815,19 +3783,19 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "ALPINEUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "ASRUSDT": {
     "min_qty": 0.1,
     "min_notional": 5.0,
     "step_size": 0.1,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "ALPINEUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3856,9 +3824,9 @@
     "quote_asset": "USDT"
   },
   "OBOLUSDT": {
-    "min_qty": 0.1,
+    "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
+    "step_size": 1.0,
     "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -3872,9 +3840,9 @@
     "quote_asset": "USDT"
   },
   "OGUSDT": {
-    "min_qty": 0.01,
+    "min_qty": 0.1,
     "min_notional": 5.0,
-    "step_size": 0.01,
+    "step_size": 0.1,
     "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -3903,6 +3871,14 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "CVCUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "AGTUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -3911,11 +3887,35 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
+  "AWEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
   "BUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SOONUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HUMAUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3948,6 +3948,70 @@
     "min_notional": 5.0,
     "step_size": 0.01,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "BDXNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUFFERUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PORT3USDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "1000000BOBUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LAUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "SKATEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "HOMEUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RESOLVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -3990,6 +4054,14 @@
     "tick_size": 0.001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
+  },
+  "SPKUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
   },
   "MYXUSDT": {
     "min_qty": 1.0,
@@ -4055,14 +4127,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "IDOL": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "BULLAUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -4092,6 +4156,14 @@
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-05,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "PUMPUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -4158,6 +4230,14 @@
     "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
+  },
+  "CVXUSDT": {
+    "min_qty": 0.1,
+    "min_notional": 5.0,
+    "step_size": 0.1,
+    "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
   },
   "SLPUSDT": {
     "min_qty": 1.0,
@@ -4311,14 +4391,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "SAPIENUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "CUDISUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -4327,47 +4399,7 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "AWEUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "SOONUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "HUMAUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "LAUSDT": {
-    "min_qty": 0.1,
-    "min_notional": 5.0,
-    "step_size": 0.1,
-    "tick_size": 0.0001,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "RESOLVUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "SPKUSDT": {
+  "SAPIENUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -4408,9 +4440,9 @@
     "quote_asset": "USDT"
   },
   "BASUSDT": {
-    "min_qty": 0.1,
+    "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
+    "step_size": 1.0,
     "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -4455,14 +4487,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "PTBUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "ARIAUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -4479,59 +4503,11 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "BDXNUSDT": {
+  "PTBUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
     "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "OPENUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1e-07,
-    "tick_size": 0.0,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "PUFFERUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "PORT3USDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "1000000BOBUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "SKATEUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
-  "HOMEUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -4542,6 +4518,14 @@
     "tick_size": 0.0001,
     "max_leverage": 20.0,
     "quote_asset": "USDC"
+  },
+  "OPENUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 0.0001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
   },
   "FLOCKUSDT": {
     "min_qty": 1.0,
@@ -4751,14 +4735,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "TRUTHUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "NOMUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -4767,15 +4743,15 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "2ZUSDT": {
+  "TRUTHUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
-    "tick_size": 1e-05,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "LYNUSDT": {
+  "2ZUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
     "step_size": 1.0,
@@ -4788,6 +4764,14 @@
     "min_notional": 5.0,
     "step_size": 0.1,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "LYNUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
@@ -4863,14 +4847,6 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "\u6d4b\u8bd5\u6d4b\u8bd5USDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-05,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "RECALLUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
@@ -4887,18 +4863,10 @@
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },
-  "RVVUSDT": {
-    "min_qty": 1.0,
-    "min_notional": 5.0,
-    "step_size": 1.0,
-    "tick_size": 1e-06,
-    "max_leverage": 20.0,
-    "quote_asset": "USDT"
-  },
   "LABUSDT": {
     "min_qty": 1.0,
     "min_notional": 5.0,
-    "step_size": 0.1,
+    "step_size": 1.0,
     "tick_size": 1e-05,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
@@ -4908,6 +4876,14 @@
     "min_notional": 5.0,
     "step_size": 0.1,
     "tick_size": 0.001,
+    "max_leverage": 20.0,
+    "quote_asset": "USDT"
+  },
+  "RVVUSDT": {
+    "min_qty": 1.0,
+    "min_notional": 5.0,
+    "step_size": 1.0,
+    "tick_size": 1e-06,
     "max_leverage": 20.0,
     "quote_asset": "USDT"
   },

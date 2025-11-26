@@ -18,7 +18,7 @@ class TradingEngine:
         strategy: Strategy,
         risk_manager: RiskManager,
         position_manager: PositionManager,
-        order_router: OrderRouter,
+        order_router: Optional[OrderRouter] = None,
         stream: Optional[BinanceStream] = None,
     ):
         self.strategy = strategy
@@ -53,6 +53,8 @@ class TradingEngine:
     async def run_live(self):
         if self.stream is None:
             raise RuntimeError("Binance stream not configured")
+        if self.order_router is None:
+            raise RuntimeError("Order router not configured for live trading")
         async for candle in self.stream.candle_stream():
             if not candle:
                 continue
@@ -86,5 +88,7 @@ class TradingEngine:
     def run_backtest(self, candles: Iterable) -> dict:
         from backtest.runner import BacktestRunner
 
+        if hasattr(self.risk_manager, "enable_backtest_mode"):
+            self.risk_manager.enable_backtest_mode()
         runner = BacktestRunner(self.strategy, self.risk_manager, self.position_manager)
         return runner.run(list(candles))

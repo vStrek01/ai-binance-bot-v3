@@ -8,10 +8,12 @@ from infra.logging import logger
 
 
 class RiskManager:
-    def __init__(self, config: RiskConfig):
+    def __init__(self, config: RiskConfig, *, relaxed_drawdown: bool = False):
         self.config = config
         self.daily_start_equity: Optional[float] = None
         self.last_reset: Optional[datetime] = None
+        self.relaxed_drawdown = relaxed_drawdown
+        self._drawdown_alerted = False
 
     def reset_day_if_needed(self, equity: float):
         now = datetime.utcnow()
@@ -20,18 +22,25 @@ class RiskManager:
             if self.daily_start_equity is None:
                 self.daily_start_equity = equity
             logger.info("Daily risk counters reset", extra={"equity": equity})
+            self._drawdown_alerted = False
             return
         if now.date() != self.last_reset.date():
             self.last_reset = now
             self.daily_start_equity = equity
             logger.info("Daily risk counters reset", extra={"equity": equity})
+            self._drawdown_alerted = False
 
     def _daily_drawdown_exceeded(self, equity: float) -> bool:
+        if self.relaxed_drawdown:
+            return False
         if self.daily_start_equity is None:
             self.daily_start_equity = equity
             return False
         dd = (equity - self.daily_start_equity) / self.daily_start_equity
         return dd <= -self.config.max_daily_drawdown_pct
+
+    def enable_backtest_mode(self) -> None:
+        self.relaxed_drawdown = True
 
     def position_size(self, equity: float, entry_price: float, stop_loss: Optional[float]) -> float:
         if stop_loss is None:
@@ -47,7 +56,9 @@ class RiskManager:
         self.reset_day_if_needed(state.equity)
 
         if self._daily_drawdown_exceeded(state.equity):
-            logger.error("Daily drawdown limit hit", extra={"equity": state.equity})
+            if not self._drawdown_alerted:
+                logger.error("Daily drawdown limit hit", extra={"equity": state.equity})
+                self._drawdown_alerted = True
             return None
 
         if len(state.open_positions) >= self.config.max_open_positions:

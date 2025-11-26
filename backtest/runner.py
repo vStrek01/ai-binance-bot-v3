@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from dataclasses import asdict, dataclass
 from typing import List
 
 from backtest.execution_sim import ExecutionSimulator
@@ -9,14 +11,31 @@ from core.risk import RiskManager
 from core.state import PositionManager
 from core.strategy import Strategy
 from infra.logging import logger
-from infra.persistence import save_backtest_results
+
+
+@dataclass(slots=True)
+class BacktestSummary:
+    starting_equity: float
+    ending_equity: float
+    net_pnl: float
+    net_pnl_pct: float
+    closed_trades: int
+    win_rate_pct: float
+    max_drawdown_pct: float
+    avg_r_multiple: float
+
+    def as_dict(self) -> dict:
+        return asdict(self)
 
 
 class BacktestRunner:
     def __init__(self, strategy: Strategy, risk_manager: RiskManager, position_manager: PositionManager, initial_equity: float = 10_000):
         self.strategy = strategy
         self.risk_manager = risk_manager
+        if hasattr(self.risk_manager, "enable_backtest_mode"):
+            self.risk_manager.enable_backtest_mode()
         self.position_manager = position_manager
+        self.initial_equity = initial_equity
         self.position_manager.equity = initial_equity
         self.simulator = ExecutionSimulator(spread=0.5, slippage=risk_manager.config.slippage, fee_rate=risk_manager.config.taker_fee_rate)
 
@@ -46,14 +65,36 @@ class BacktestRunner:
                 equity=self.position_manager.equity,
                 open_positions=self.position_manager.get_open_positions(),
             )
-            if candle.close_time < candles[idx].close_time and idx > 0:
+            if idx > 0 and candle.close_time <= candles[idx - 1].close_time:
+                logger.debug(
+                    "Skipping stale candle",
+                    extra={"idx": idx, "close_time": candle.close_time, "prev_close": candles[idx - 1].close_time},
+                )
                 continue
 
             signal = self.strategy.evaluate(market_state)
             if signal.action != Side.FLAT:
+                logger.debug(
+                    "Strategy signal",
+                    extra={
+                        "idx": idx,
+                        "action": signal.action.value,
+                        "price": candle.close,
+                        "confidence": signal.confidence,
+                    },
+                )
                 order = self._map_signal_to_order(signal.action, candle)
                 safe_order = self.risk_manager.validate(order, market_state)
                 if safe_order:
+                    logger.debug(
+                        "Order approved by risk",
+                        extra={
+                            "symbol": safe_order.symbol,
+                            "side": safe_order.side.value,
+                            "qty": safe_order.quantity,
+                            "price": safe_order.price,
+                        },
+                    )
                     fill, fee = self.simulator.simulate(safe_order, candle.close)
                     self.position_manager.apply_fee(fee)
                     self.position_manager.update_on_fill(
@@ -66,6 +107,11 @@ class BacktestRunner:
                     )
                     trade_pnls.append(0.0)
                     risks.append(self.position_manager.equity * self.risk_manager.config.max_risk_per_trade_pct)
+                else:
+                    logger.debug(
+                        "Order blocked by risk",
+                        extra={"symbol": order.symbol, "side": order.side.value, "price": order.price},
+                    )
 
             # simple exit rule: close if opposite signal or at final candle
             open_positions = self.position_manager.get_open_positions()
@@ -84,6 +130,16 @@ class BacktestRunner:
                         pnl = -pnl
                     self.position_manager.close_position(pos.symbol, exit_price)
                     trade_pnls[-1] = pnl
+                    logger.debug(
+                        "Closed position",
+                        extra={
+                            "symbol": pos.symbol,
+                            "side": pos.side.value,
+                            "exit_price": exit_price,
+                            "pnl": pnl,
+                            "reason": "opposite_signal" if signal.action != pos.side else "flat_signal",
+                        },
+                    )
 
             equity_curve.append(self.position_manager.equity)
             open_bars.append(len(self.position_manager.get_open_positions()))
@@ -96,6 +152,26 @@ class BacktestRunner:
             "avg_r": average_r(trade_pnls, risks),
             "exposure": exposure(open_bars, len(open_bars)),
         }
-        save_backtest_results({"equity_curve": equity_curve, "metrics": metrics, "trades": trade_pnls})
+        summary = self._build_summary(equity_curve, trade_pnls, risks).as_dict()
+        logger.info("Backtest metrics: %s", json.dumps(summary))
         logger.info("Backtest complete", extra={"metrics": metrics})
-        return {"equity_curve": equity_curve, "metrics": metrics, "trades": trade_pnls}
+        return {"equity_curve": equity_curve, "metrics": metrics, "trades": trade_pnls, "summary": summary}
+
+    def _build_summary(self, equity_curve: List[float], trade_pnls: List[float], risks: List[float]) -> BacktestSummary:
+        ending_equity = self.position_manager.equity
+        net_pnl = ending_equity - self.initial_equity
+        net_pct = (net_pnl / self.initial_equity * 100) if self.initial_equity else 0.0
+        closed_trades = len(trade_pnls)
+        win_pct = win_rate(trade_pnls) * 100
+        max_dd_pct = abs(max_drawdown(equity_curve)) * 100 if equity_curve else 0.0
+        avg_r_multiple = average_r(trade_pnls, risks)
+        return BacktestSummary(
+            starting_equity=self.initial_equity,
+            ending_equity=ending_equity,
+            net_pnl=net_pnl,
+            net_pnl_pct=net_pct,
+            closed_trades=closed_trades,
+            win_rate_pct=win_pct,
+            max_drawdown_pct=max_dd_pct,
+            avg_r_multiple=avg_r_multiple,
+        )

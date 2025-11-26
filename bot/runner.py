@@ -7,14 +7,18 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 
 import uvicorn
 
+from dataclasses import asdict
+
 from bot import data
 from bot.backtester import Backtester
+from bot.backtest_core_bridge import run_core_backtest
 from bot.core.config import BotConfig, ensure_directories, load_config
 from bot.exchange_info import ExchangeInfoManager
 from bot.execution.client_factory import build_data_client, build_trading_client
 from bot.learning import TradeLearningStore
-from bot.optimizer import Optimizer, load_best_parameters
+from bot.optimizer import Optimizer
 from bot.optimization import HyperparameterOptimizer
+from bot.optimization_loader import load_best_params
 from bot.portfolio import build_portfolio_meta, select_top_markets
 from bot.pipeline import FullCycleRunner
 from bot.simulator import DryRunner, MultiSymbolDryRunner
@@ -224,14 +228,14 @@ def cmd_download(cfg: BotConfig, args: argparse.Namespace) -> None:
                 logger.warning("Skipping %s %s download: %s", symbol, interval, exc)
 
 
-def _build_strategy_params(
+def _resolve_strategy_overrides(
     cfg: BotConfig,
     symbol: str,
     interval: str,
     use_best: bool,
     *,
     rl_context: str,
-) -> StrategyParameters:
+) -> tuple[Optional[Dict[str, float]], str]:
     allow_rl = cfg.rl.enabled and cfg.runtime.use_rl_policy
     if rl_context == "live" and not cfg.rl.apply_to_live:
         allow_rl = False
@@ -242,29 +246,82 @@ def _build_strategy_params(
         rl_context=rl_context,
         allow_rl=allow_rl,
     )
-    if overrides is None and use_best:
-        overrides = load_best_parameters(cfg, symbol, interval)
-        if overrides:
-            logger.info("Loaded optimized parameters for %s %s", symbol, interval)
-        else:
-            logger.warning("No optimized parameters found for %s %s; using defaults", symbol, interval)
+    if overrides is not None:
+        return overrides, "rl_override"
+    if use_best:
+        optimized = load_best_params(cfg, symbol, interval)
+        if optimized:
+            return optimized, "optimized"
+        logger.warning("No optimized parameters found for %s %s; using defaults", symbol, interval)
+    return None, "default"
+
+
+def _build_strategy_params(
+    cfg: BotConfig,
+    symbol: str,
+    interval: str,
+    use_best: bool,
+    *,
+    rl_context: str,
+) -> StrategyParameters:
+    overrides, _ = _resolve_strategy_overrides(cfg, symbol, interval, use_best, rl_context=rl_context)
     return build_parameters(cfg, overrides)
 
 
+def _build_strategy_params_with_meta(
+    cfg: BotConfig,
+    symbol: str,
+    interval: str,
+    use_best: bool,
+    *,
+    rl_context: str,
+) -> tuple[StrategyParameters, Optional[Dict[str, float]], str]:
+    overrides, source = _resolve_strategy_overrides(cfg, symbol, interval, use_best, rl_context=rl_context)
+    params = build_parameters(cfg, overrides)
+    overrides_copy = dict(overrides) if overrides else None
+    return params, overrides_copy, source
+
+
 def cmd_backtest(cfg: BotConfig, args: argparse.Namespace) -> None:
-    exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
-    exchange.refresh(force=True)
-    backtester = Backtester(cfg, exchange)
-    params = _build_strategy_params(
+    params, _override_payload, params_source = _build_strategy_params_with_meta(
         cfg,
         args.symbol,
         args.interval,
         getattr(args, "use_best", False),
         rl_context="backtest",
     )
+    params_dict = asdict(params)
+    logger.info(
+        "Using %s parameters for %s %s: %s",
+        params_source,
+        args.symbol,
+        args.interval,
+        params_dict,
+    )
     candles = data.load_local_candles(cfg, args.symbol, args.interval)
-    result = backtester.run(args.symbol, args.interval, candles, params)
-    logger.info("Backtest metrics: %s", result["metrics"])
+    engine_choice = getattr(args, "engine", "core")
+
+    if engine_choice == "core":
+        result = run_core_backtest(
+            cfg,
+            args.symbol,
+            args.interval,
+            candles,
+            params,
+            params_dict,
+            params_source,
+        )
+        trade_count = len(result.get("trades", []))
+        logger.info(
+            "Core backtest complete",
+            extra={"symbol": args.symbol, "interval": args.interval, "trades": trade_count, "metrics": result.get("metrics", {})},
+        )
+    else:
+        exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
+        exchange.refresh(force=True)
+        backtester = Backtester(cfg, exchange)
+        result = backtester.run(args.symbol, args.interval, candles, params)
+        logger.info("Legacy backtest metrics: %s", result["metrics"])
 
 def cmd_optimize(cfg: BotConfig, args: argparse.Namespace) -> None:
     symbols = args.symbols or list(cfg.universe.default_symbols)
@@ -538,7 +595,19 @@ def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
     backtest = subparsers.add_parser("backtest", help="Run a single backtest on cached data")
     backtest.add_argument("--symbol", required=True, help="Symbol like BTCUSDT")
     backtest.add_argument("--interval", required=True, help="Interval such as 1m or 1h")
-    backtest.add_argument("--use-best", action="store_true", help="Apply optimized parameters when available")
+    backtest.add_argument(
+        "--use-optimized",
+        dest="use_best",
+        action="store_true",
+        help="Apply optimized parameters from optimization_results directory",
+    )
+    backtest.add_argument("--use-best", dest="use_best", action="store_true", help=argparse.SUPPRESS)
+    backtest.add_argument(
+        "--engine",
+        choices=("core", "legacy"),
+        default="core",
+        help="Select the backtest implementation (default: core EMA pipeline)",
+    )
     backtest.set_defaults(func=cmd_backtest)
 
     optimize = subparsers.add_parser("optimize", help="Launch parameter optimization")

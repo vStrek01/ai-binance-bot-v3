@@ -36,6 +36,7 @@ class Position(BaseModel):
     closed_at: Optional[datetime] = None
     realized_pnl: float = 0.0
     unrealized_pnl: float = 0.0
+    has_added_once: bool = False
 
     def is_open(self) -> bool:
         return self.closed_at is None

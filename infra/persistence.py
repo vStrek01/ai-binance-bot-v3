@@ -1,15 +1,17 @@
 import json
-import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
 
-DATA_DIR = os.path.join("data", "results")
-os.makedirs(DATA_DIR, exist_ok=True)
+RESULTS_DIR = Path("results")
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def save_backtest_results(results: Dict[str, Any]):
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    path = os.path.join(DATA_DIR, f"backtest_{timestamp}.json")
-    with open(path, "w", encoding="utf-8") as f:
+def save_backtest_results(results: Dict[str, Any], *, symbol: str, interval: str) -> Path:
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"{symbol}_{interval}_backtest_{timestamp}.json"
+    path = RESULTS_DIR / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, default=str)
     return path
