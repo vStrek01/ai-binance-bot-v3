@@ -22,6 +22,8 @@ class StepInfo:
     unrealized_pnl: float
     position: int
     price: float
+    transaction_cost_bps: float
+    taker_fee: float
 
 
 class FuturesTradingEnv:
@@ -43,6 +45,9 @@ class FuturesTradingEnv:
         self.reward_fn = get_reward_function(reward_scheme or cfg.rl.reward_scheme)
         self.max_steps = max_steps or cfg.rl.max_steps_per_episode
         self.base_balance = cfg.backtest.initial_balance
+        # Explicitly track market impact assumptions for diagnostics/audits.
+        self.transaction_cost_bps = float(cfg.backtest.slippage_bps)
+        self.taker_fee = float(cfg.risk.taker_fee)
         self._load_data()
         self.observation_size = self.window + 6
         self.action_space = len(self.action_meanings)
@@ -142,12 +147,23 @@ class FuturesTradingEnv:
             "drawdown": drawdown,
             "position": float(self.position),
             "action_change": action_change,
+            # Reward shaping explicitly factors in transaction costs/fees.
+            "transaction_cost_bps": self.transaction_cost_bps,
+            "taker_fee": self.taker_fee,
         }
         reward = float(self.reward_fn(context))
         self.index += 1
         self.step_count += 1
         done = self.index >= len(self.frame) - 2 or self.step_count >= self.max_steps
-        info = StepInfo(equity=equity, realized_pnl=self.realized_pnl, unrealized_pnl=self.unrealized_pnl, position=self.position, price=next_price)
+        info = StepInfo(
+            equity=equity,
+            realized_pnl=self.realized_pnl,
+            unrealized_pnl=self.unrealized_pnl,
+            position=self.position,
+            price=next_price,
+            transaction_cost_bps=self.transaction_cost_bps,
+            taker_fee=self.taker_fee,
+        )
         return self._observation(), reward, done, info
 
     def derive_parameters(self) -> Dict[str, float]:
