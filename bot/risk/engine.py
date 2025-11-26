@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import time
 from collections import deque
-from dataclasses import dataclass
-from typing import Any, Deque, Dict, Optional, Tuple
+from dataclasses import dataclass, replace
+from enum import Enum
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
-from bot.core.config import BotConfig
+from bot.core.config import BotConfig, RiskConfig
 from bot.execution.exchange import SymbolFilters
 from bot.utils.logger import get_logger
 
@@ -19,22 +20,94 @@ class ExposureState:
     total: float
 
 
+@dataclass(slots=True)
+class RiskDecision:
+    allowed: bool
+    should_flatten: bool
+    reason: Optional[str] = None
+
+
+@dataclass(slots=True)
+class RiskState:
+    equity: float
+    pnl_today: float
+    loss_abs: float
+    loss_pct: float
+    max_daily_loss_pct: float
+    max_daily_loss_abs: float | None
+    trading_mode: "TradingMode"
+    flatten_required: bool
+    last_trigger_reason: Optional[str]
+    last_triggered_at: Optional[float]
+    reference_equity: float
+
+
+@dataclass(slots=True)
+class RiskEvent:
+    timestamp: float
+    event_type: str
+    reason: Optional[str]
+    equity: float
+    pnl_today: float
+    loss_abs: float
+    loss_pct: float
+    symbol: Optional[str] = None
+
+
+@dataclass(slots=True)
+class TradeEvent:
+    pnl: float
+    equity: float
+    timestamp: Optional[float] = None
+    symbol: Optional[str] = None
+
+
+@dataclass(slots=True)
+class OpenTradeRequest:
+    symbol: str
+    side: str
+    quantity: float
+    price: float
+    available_balance: float
+    equity: float
+    exposure: ExposureState
+    filters: SymbolFilters | None = None
+
+
+@dataclass(slots=True)
+class CloseTradeRequest:
+    symbol: str
+    quantity: float
+    price: float
+    equity: float
+    exposure: ExposureState
+    filters: SymbolFilters | None = None
+
+
+class TradingMode(Enum):
+    NORMAL = "normal"
+    HALTED_DAILY_LOSS = "halted_daily_loss"
+    HALTED_MANUAL = "halted_manual"
+
+
 class RiskEngine:
     """Enforces margin, exposure, and exchange sizing constraints."""
 
+    _AUDIT_LIMIT = 200
+
     def __init__(self, cfg: BotConfig) -> None:
-        self._config = cfg
+        self._config = self._clamp_config(cfg)
         self._margin_blocks: Dict[str, Dict[str, float]] = {}
         self._last_free_balance: float = 0.0
         self._pnl_window: Deque[Tuple[float, float]] = deque()
         self._window_realized: float = 0.0
         self._reference_equity: float = 0.0
         self._last_equity: float = 0.0
-        self._loss_triggered: bool = False
-        self._loss_reason: Optional[str] = None
+        self._trading_mode: TradingMode = TradingMode.NORMAL
+        self._halt_reason: Optional[str] = None
         self._loss_triggered_at: Optional[float] = None
-        self._halt_trading: bool = False
         self._flatten_positions: bool = False
+        self._audit: Deque[RiskEvent] = deque(maxlen=self._AUDIT_LIMIT)
         self._state_version: int = 0
 
     def on_balance_refresh(self, free_balance: float) -> None:
@@ -68,31 +141,117 @@ class RiskEngine:
             self._reference_equity = sanitized
         self._prune_loss_window(time.time())
 
-    def register_trade(self, pnl: float, equity: float, timestamp: Optional[float] = None) -> None:
-        try:
-            now = float(timestamp) if timestamp is not None else time.time()
-        except (TypeError, ValueError):  # pragma: no cover - defensive
-            now = time.time()
-        self.update_equity(equity)
-        self._pnl_window.append((now, pnl))
-        self._window_realized += pnl
+    def register_trade(self, trade: TradeEvent) -> None:
+        now = self._sanitize_timestamp(trade.timestamp)
+        self.update_equity(trade.equity)
+        self._pnl_window.append((now, trade.pnl))
+        self._window_realized += trade.pnl
         self._prune_loss_window(now)
         if not self._reference_equity:
-            self._reference_equity = self._last_equity or max(equity, 0.0)
-        self._evaluate_daily_limits(now)
+            self._reference_equity = self._last_equity or max(trade.equity, 0.0)
+        self._evaluate_daily_limits(now, symbol=trade.symbol)
+
+    def evaluate_open(self, request: OpenTradeRequest) -> RiskDecision:
+        self.update_equity(request.equity)
+        if self._trading_mode != TradingMode.NORMAL:
+            decision = RiskDecision(False, self._flatten_positions, self._halt_reason)
+            self._record_event("open_blocked", request.symbol, decision.reason)
+            return decision
+        if request.quantity <= 0 or request.price <= 0:
+            decision = RiskDecision(False, False, "invalid_request")
+            self._record_event("open_blocked", request.symbol, decision.reason)
+            return decision
+        adjusted, limit_reason = self.adjust_quantity(
+            symbol=request.symbol,
+            price=request.price,
+            quantity=request.quantity,
+            available_balance=request.available_balance,
+            equity=request.equity,
+            symbol_exposure=request.exposure.per_symbol.get(request.symbol, 0.0),
+            total_exposure=request.exposure.total,
+            filters=request.filters,
+        )
+        if adjusted <= 0:
+            decision = RiskDecision(False, False, limit_reason or "risk_limit")
+            self._record_event("open_blocked", request.symbol, decision.reason)
+            return decision
+        return RiskDecision(True, False, None)
+
+    def evaluate_close(self, request: CloseTradeRequest) -> RiskDecision:
+        self.update_equity(request.equity)
+        if request.quantity <= 0 or request.price <= 0:
+            decision = RiskDecision(False, False, "invalid_request")
+            self._record_event("close_blocked", request.symbol, decision.reason)
+            return decision
+        if self._flatten_positions or self._trading_mode != TradingMode.NORMAL:
+            return RiskDecision(True, True, self._halt_reason)
+        return RiskDecision(True, False, None)
+
+    def current_state(self) -> RiskState:
+        reference = self._reference_equity or self._last_equity
+        loss_amount = max(-self._window_realized, 0.0)
+        loss_pct = (loss_amount / reference) if reference > 0 else 0.0
+        return RiskState(
+            equity=self._last_equity,
+            pnl_today=self._window_realized,
+            loss_abs=loss_amount,
+            loss_pct=loss_pct,
+            max_daily_loss_pct=self._config.risk.max_daily_loss_pct,
+            max_daily_loss_abs=self._config.risk.max_daily_loss_abs,
+            trading_mode=self._trading_mode,
+            flatten_required=self._flatten_positions,
+            last_trigger_reason=self._halt_reason,
+            last_triggered_at=self._loss_triggered_at,
+            reference_equity=reference,
+        )
+
+    def reset_daily_limits(self) -> None:
+        self._pnl_window.clear()
+        self._reset_loss_window()
+
+    def snapshot(self) -> Dict[str, Any]:
+        state = self.current_state()
+        return {
+            "equity": state.equity,
+            "pnl_today": state.pnl_today,
+            "loss_abs": state.loss_abs,
+            "loss_pct": state.loss_pct,
+            "max_daily_loss_pct": state.max_daily_loss_pct,
+            "max_daily_loss_abs": state.max_daily_loss_abs,
+            "trading_mode": state.trading_mode.value,
+            "trading_paused": state.trading_mode != TradingMode.NORMAL,
+            "flatten_required": state.flatten_required,
+            "reason": state.last_trigger_reason,
+            "triggered_at": state.last_triggered_at,
+            "reference_equity": state.reference_equity,
+            "state_version": self._state_version,
+            "recent_events": [
+                {
+                    "timestamp": event.timestamp,
+                    "event_type": event.event_type,
+                    "reason": event.reason,
+                    "symbol": event.symbol,
+                    "equity": event.equity,
+                    "pnl_today": event.pnl_today,
+                    "loss_abs": event.loss_abs,
+                    "loss_pct": event.loss_pct,
+                }
+                for event in self.get_recent_events(limit=20)
+            ],
+        }
 
     def can_open_new_trades(self) -> Tuple[bool, Optional[str]]:
-        if self._halt_trading:
-            return False, self._loss_reason or "risk_halt"
+        if self._trading_mode != TradingMode.NORMAL:
+            return False, self._halt_reason or self._trading_mode.value
         return True, None
 
     @property
     def trading_paused(self) -> bool:
-        return self._halt_trading
+        return self._trading_mode != TradingMode.NORMAL
 
     @property
     def halt_reason(self) -> Optional[str]:
-        return self._loss_reason
+        return self._halt_reason
 
     def should_flatten_positions(self) -> bool:
         return self._flatten_positions
@@ -100,91 +259,130 @@ class RiskEngine:
     def clear_flatten_request(self) -> None:
         self._flatten_positions = False
 
-    def reset_daily_limits(self) -> None:
-        self._pnl_window.clear()
+    def set_manual_halt(self, reason: str) -> None:
+        if self._trading_mode == TradingMode.HALTED_MANUAL:
+            return
+        self._trading_mode = TradingMode.HALTED_MANUAL
+        self._halt_reason = reason
+        self._loss_triggered_at = time.time()
+        self._record_event("manual_halt", None, reason)
+        self._state_version += 1
+
+    def clear_manual_halt(self) -> None:
+        if self._trading_mode != TradingMode.HALTED_MANUAL:
+            return
         self._reset_loss_window()
 
-    def snapshot(self) -> Dict[str, Any]:
-        reference = self._reference_equity or self._last_equity
-        loss_amount = max(-self._window_realized, 0.0)
-        loss_pct = (loss_amount / reference) if reference > 0 else 0.0
-        lookback = max(self._config.risk.daily_loss_lookback_hours, 1)
-        return {
-            "lookback_hours": lookback,
-            "realized": self._window_realized,
-            "loss_abs": loss_amount,
-            "loss_pct": loss_pct,
-            "reference_equity": reference,
-            "max_daily_loss_pct": self._config.risk.max_daily_loss_pct,
-            "max_daily_loss_abs": self._config.risk.max_daily_loss_abs,
-            "trading_paused": self._halt_trading,
-            "reason": self._loss_reason,
-            "triggered_at": self._loss_triggered_at,
-            "flatten_required": self._flatten_positions,
-            "stop_trading_on_daily_loss": self._config.risk.stop_trading_on_daily_loss,
-            "close_positions_on_daily_loss": self._config.risk.close_positions_on_daily_loss,
-            "state_version": self._state_version,
-        }
+    def get_recent_events(self, limit: int = 100) -> List[RiskEvent]:
+        if limit <= 0:
+            return []
+        return list(self._audit)[-limit:]
 
     def _prune_loss_window(self, now: float) -> None:
         lookback_hours = max(self._config.risk.daily_loss_lookback_hours, 1)
         cutoff = now - (lookback_hours * 3600)
-        dirty = False
         while self._pnl_window and self._pnl_window[0][0] < cutoff:
             _, pnl = self._pnl_window.popleft()
             self._window_realized -= pnl
-            dirty = True
-        if dirty and not self._pnl_window:
-            self._reset_loss_window()
 
     def _reset_loss_window(self) -> None:
         self._window_realized = 0.0
         self._reference_equity = self._last_equity
-        self._loss_triggered = False
-        self._loss_reason = None
+        self._trading_mode = TradingMode.NORMAL
+        self._halt_reason = None
         self._loss_triggered_at = None
-        self._halt_trading = False
         self._flatten_positions = False
         self._state_version += 1
 
-    def _evaluate_daily_limits(self, now: float) -> None:
+    def _evaluate_daily_limits(self, now: float, *, symbol: Optional[str]) -> None:
+        if self._trading_mode == TradingMode.HALTED_DAILY_LOSS:
+            return
         limit_pct = max(self._config.risk.max_daily_loss_pct, 0.0)
         limit_abs = self._config.risk.max_daily_loss_abs or 0.0
         reference = self._reference_equity or self._last_equity
         loss_amount = max(-self._window_realized, 0.0)
         loss_pct = (loss_amount / reference) if reference > 0 else 0.0
-        triggered = False
-        reason: Optional[str] = None
+        trigger: Optional[str] = None
         if limit_pct > 0 and loss_pct >= limit_pct:
-            triggered = True
-            reason = "daily_loss_pct"
+            trigger = "daily_loss_pct"
         if limit_abs > 0 and loss_amount >= limit_abs:
-            triggered = True
-            reason = reason or "daily_loss_abs"
-        if not triggered:
-            if self._loss_triggered:
-                self._state_version += 1
-            self._loss_triggered = False
-            self._loss_reason = None
-            self._loss_triggered_at = None
-            self._halt_trading = False
-            self._flatten_positions = False
+            trigger = trigger or "daily_loss_abs"
+        if trigger is None:
             return
-        if not self._loss_triggered:
-            self._loss_triggered = True
-            self._loss_reason = reason
-            self._loss_triggered_at = now
-            self._state_version += 1
-            logger.error(
-                "Daily loss limit breached: loss=%.2f pct=%.4f (stop=%s flatten=%s)",
-                loss_amount,
-                loss_pct,
-                self._config.risk.stop_trading_on_daily_loss,
-                self._config.risk.close_positions_on_daily_loss,
-            )
-        self._halt_trading = self._config.risk.stop_trading_on_daily_loss or self._halt_trading
-        if self._config.risk.close_positions_on_daily_loss:
-            self._flatten_positions = True
+        self._trading_mode = TradingMode.HALTED_DAILY_LOSS
+        self._halt_reason = trigger
+        self._loss_triggered_at = now
+        self._flatten_positions = self._config.risk.close_positions_on_daily_loss or self._flatten_positions
+        self._state_version += 1
+        self._record_event("daily_loss_triggered", symbol, trigger, loss_amount, loss_pct)
+        logger.error(
+            "risk_daily_loss_triggered",
+            extra={
+                "loss_amount": loss_amount,
+                "loss_pct": loss_pct,
+                "mode": self._trading_mode.value,
+                "flatten": self._flatten_positions,
+                "symbol": symbol,
+                "trigger": trigger,
+            },
+        )
+
+    def _record_event(
+        self,
+        event_type: str,
+        symbol: Optional[str],
+        reason: Optional[str],
+        loss_abs: Optional[float] = None,
+        loss_pct: Optional[float] = None,
+    ) -> None:
+        state = self.current_state()
+        loss_abs = loss_abs if loss_abs is not None else state.loss_abs
+        loss_pct = loss_pct if loss_pct is not None else state.loss_pct
+        event = RiskEvent(
+            timestamp=time.time(),
+            event_type=event_type,
+            reason=reason,
+            equity=state.equity,
+            pnl_today=state.pnl_today,
+            loss_abs=loss_abs,
+            loss_pct=loss_pct,
+            symbol=symbol,
+        )
+        self._audit.append(event)
+        logger.warning(
+            "risk_event",
+            extra={
+                "event_type": event_type,
+                "reason": reason,
+                "symbol": symbol,
+                "equity": state.equity,
+                "pnl_today": state.pnl_today,
+                "loss_abs": loss_abs,
+                "loss_pct": loss_pct,
+                "trading_mode": state.trading_mode.value,
+            },
+        )
+
+    def _sanitize_timestamp(self, timestamp: Optional[float]) -> float:
+        try:
+            return float(timestamp) if timestamp is not None else time.time()
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            return time.time()
+
+    def _clamp_config(self, cfg: BotConfig) -> BotConfig:
+        risk = cfg.risk
+        clamps: Dict[str, float] = {}
+        if cfg.runtime.live_trading or not cfg.runtime.dry_run:
+            leverage_cap = 25.0
+            max_daily_loss_pct_cap = 0.2
+            if risk.leverage > leverage_cap:
+                clamps["leverage"] = leverage_cap
+            if risk.max_daily_loss_pct > max_daily_loss_pct_cap:
+                clamps["max_daily_loss_pct"] = max_daily_loss_pct_cap
+        if clamps:
+            logger.warning("Risk config clamped for safety", extra={"clamps": clamps})
+            risk = replace(risk, **clamps)
+        return replace(cfg, risk=risk)
 
     def adjust_quantity(
         self,
@@ -283,4 +481,14 @@ class RiskEngine:
         return max(equity, 0.0) * self._config.risk.max_account_exposure
 
 
-__all__ = ["ExposureState", "RiskEngine"]
+__all__ = [
+    "CloseTradeRequest",
+    "ExposureState",
+    "OpenTradeRequest",
+    "RiskDecision",
+    "RiskEngine",
+    "RiskEvent",
+    "RiskState",
+    "TradeEvent",
+    "TradingMode",
+]

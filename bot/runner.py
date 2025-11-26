@@ -21,11 +21,12 @@ from bot.simulator import DryRunner, MultiSymbolDryRunner
 from bot.live_trader import LiveTrader
 from bot.rl.agents import ActorCriticAgent
 from bot.rl.env import FuturesTradingEnv
-from bot.rl.policy_store import RLPolicyStore
+from bot.rl.policy_store import RLPolicyStore, _policy_name
 from bot.rl.trainer import RLTrainer
+from bot.rl.types import compute_baseline_hash
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
-from bot.utils.logger import get_logger
+from bot.utils.logger import RunContext, generate_run_id, get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -68,25 +69,23 @@ def _report_rl_state(
             "timeframe": interval,
         }
     )
-
-
-def _rl_guardrails_allow(cfg: BotConfig, params: Dict[str, float]) -> tuple[bool, str]:
-    max_dev = max(cfg.rl.max_param_deviation_from_baseline, 0.0)
-    if max_dev <= 0:
-        return False, "max_deviation_zero"
-    baseline = cfg.strategy.default_parameters
-    for key, value in params.items():
-        if key not in baseline:
-            continue
-        try:
-            baseline_value = float(baseline[key])
-            candidate_value = float(value)
-        except (TypeError, ValueError):
-            return False, f"invalid_value_{key}"
-        denominator = abs(baseline_value) if abs(baseline_value) > 1e-9 else 1.0
-        deviation = abs(candidate_value - baseline_value) / denominator
-        if deviation > max_dev:
-            return False, f"{key}_deviation_{deviation:.2f}"
+def _policy_guardrails(
+    cfg: BotConfig,
+    *,
+    baseline_hash: str,
+    policy_baseline_hash: str,
+    param_deviation: float,
+    metrics: Dict[str, float],
+) -> tuple[bool, str]:
+    if policy_baseline_hash != baseline_hash:
+        return False, "baseline_mismatch"
+    if param_deviation > cfg.rl.max_param_deviation_from_baseline:
+        return False, f"deviation_{param_deviation:.3f}"
+    val_mean = metrics.get("val_reward_mean")
+    if val_mean is None:
+        return False, "missing_validation_metrics"
+    if val_mean < cfg.rl.min_validation_reward:
+        return False, "val_reward_below_threshold"
     return True, ""
 
 
@@ -97,7 +96,7 @@ def _load_rl_overrides(
     *,
     rl_context: str,
     allow_rl: bool,
-) -> Optional[Dict[str, float]]:
+    ) -> Optional[Dict[str, float]]:
     active = cfg.runtime.use_rl_policy and cfg.rl.enabled
     if not active:
         _report_rl_state(
@@ -132,8 +131,9 @@ def _load_rl_overrides(
         )
         logger.warning("RL policy store unavailable; skipping overrides for %s %s", symbol, interval)
         return None
-    params = store.get(symbol, interval)
-    if not params:
+    policy_name = _policy_name(symbol, interval)
+    payload = store.load_latest_policy_params(policy_name)
+    if not payload:
         _report_rl_state(
             active=True,
             applied=False,
@@ -143,7 +143,15 @@ def _load_rl_overrides(
             interval=interval,
         )
         return None
-    allowed, reason = _rl_guardrails_allow(cfg, params)
+    params, version, _run_metadata = payload
+    baseline_hash = compute_baseline_hash(cfg.strategy.default_parameters)
+    allowed, reason = _policy_guardrails(
+        cfg,
+        baseline_hash=baseline_hash,
+        policy_baseline_hash=version.baseline_params_hash,
+        param_deviation=version.param_deviation,
+        metrics=version.metrics,
+    )
     if not allowed:
         _report_rl_state(
             active=True,
@@ -153,7 +161,13 @@ def _load_rl_overrides(
             symbol=symbol,
             interval=interval,
         )
-        logger.warning("RL overrides rejected for %s %s: %s", symbol, interval, reason)
+        logger.warning(
+            "RL overrides rejected for %s %s version=%s: %s",
+            symbol,
+            interval,
+            version.version_id,
+            reason,
+        )
         return None
     _report_rl_state(
         active=True,
@@ -163,7 +177,13 @@ def _load_rl_overrides(
         symbol=symbol,
         interval=interval,
     )
-    logger.info("Applying RL policy overrides for %s %s (context=%s)", symbol, interval, rl_context)
+    logger.info(
+        "Applying RL policy overrides for %s %s (context=%s) version=%s",
+        symbol,
+        interval,
+        rl_context,
+        version.version_id,
+    )
     return params
 
 
@@ -596,14 +616,33 @@ def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     cfg = load_config()
-    ensure_directories(cfg.paths)
-    status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
     parser = build_parser(cfg)
     args = parser.parse_args(argv)
     func = getattr(args, "func", None)
     if func is None:
         parser.print_help()
         raise SystemExit(1)
+    command = str(getattr(args, "command", "general"))
+    run_type_alias = {
+        "train-rl": "rl",
+        "backtest": "backtest",
+        "optimize": "optimize",
+        "train-all": "optimize",
+        "self-tune": "optimize",
+        "dry-run": "dry_run",
+        "dry-run-portfolio": "dry_run",
+        "demo-live": "live",
+        "api": "api",
+        "download": "download",
+        "full-cycle": "pipeline",
+    }
+    run_type = run_type_alias.get(command, command)
+    run_id = generate_run_id(run_type)
+    ensure_directories(cfg.paths)
+    setup_logging(cfg, run_context=RunContext(run_id=run_id, run_type=run_type))
+    status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
+    status_store.set_run_context(run_id, run_type)
+    logger.info("Run initialized", extra={"run_type": run_type, "run_id": run_id})
     func(cfg, args)
 
 

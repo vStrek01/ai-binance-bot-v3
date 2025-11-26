@@ -13,6 +13,7 @@ from bot.core.config import BotConfig
 from bot.data.feeds import validate_candles
 from bot.exchange_info import ExchangeInfoManager
 from bot.execution.runners import MarketContext, MultiSymbolRunnerBase, PaperPosition
+from bot.risk import TradeEvent
 from bot.signals.strategies import StrategyParameters
 from bot.status import status_store
 from bot.utils.logger import get_logger
@@ -279,6 +280,10 @@ class BacktestRunner(MultiSymbolRunnerBase):
         if total_rows == 0:
             logger.warning("Backtest dataset empty for %s %s", self._symbol, self._timeframe)
             return {"symbol": self._symbol, "timeframe": self._timeframe, "trades": [], "metrics": {}}
+        logger.info(
+            "backtest_started",
+            extra={"symbol": self._symbol, "timeframe": self._timeframe, "bars": total_rows},
+        )
         status_store.set_mode("backtest", self._symbol, self._timeframe)
         status_store.update_balance(self.balance)
         status_store.set_positions([])
@@ -289,6 +294,10 @@ class BacktestRunner(MultiSymbolRunnerBase):
             self._after_bar_advanced()
         status_store.set_mode("idle", None, None)
         metrics, equity_curve = self._compute_metrics()
+        logger.info(
+            "backtest_completed",
+            extra={"symbol": self._symbol, "timeframe": self._timeframe, "trades": len(self._trade_log)},
+        )
         return {
             "symbol": self._symbol,
             "timeframe": self._timeframe,
@@ -459,7 +468,9 @@ class BacktestRunner(MultiSymbolRunnerBase):
         self._risk_engine.update_equity(self._equity_for_risk())
         realized = -total_adjustment
         if realized != 0:
-            self._risk_engine.register_trade(realized, equity=self._equity_for_risk(), timestamp=time.time())
+            self._risk_engine.register_trade(
+                TradeEvent(pnl=realized, equity=self._equity_for_risk(), timestamp=time.time(), symbol=ctx.symbol)
+            )
 
     def _compute_latency_ratio(self) -> float:
         if not self._latency_enabled or self._timeframe_ms <= 0:

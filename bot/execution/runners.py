@@ -19,6 +19,7 @@ from bot.risk import (
     PositionSizer,
     RiskEngine,
     SizingContext,
+    TradeEvent,
     volatility_snapshot,
 )
 from bot.signals import indicators
@@ -359,7 +360,9 @@ class MultiSymbolRunnerBase:
             status_store.add_live_trade(trade_payload)
         self._after_trade_closed(ctx, trade_payload)
         trade_timestamp = self._timestamp_to_epoch(trade_payload.get("closed_at"))
-        self._risk_engine.register_trade(pnl, equity=self._equity_for_risk(), timestamp=trade_timestamp)
+        self._risk_engine.register_trade(
+            TradeEvent(pnl=pnl, equity=self._equity_for_risk(), timestamp=trade_timestamp, symbol=ctx.symbol)
+        )
         self._pnl_history.append(pnl)
         if len(self._pnl_history) > 500:
             self._pnl_history = self._pnl_history[-500:]
