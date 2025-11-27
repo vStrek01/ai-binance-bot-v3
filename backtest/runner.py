@@ -147,10 +147,16 @@ class BacktestRunner:
                             trade_idx = len(trade_pnls)
                             trade_pnls.append(0.0)
                             risks.append(self.position_manager.equity * self.risk_manager.config.max_risk_per_trade_pct)
-                            self.active_trades[safe_order.symbol] = trade_idx
+                            fill = asyncio.run(self.exchange.place_order(safe_order))
                 else:
-                    logger.debug(
-                        "Order blocked by risk",
+                                entry_fee = abs(fill.avg_price * fill.filled_qty) * self.risk_manager.config.taker_fee_rate
+                                equity_before_fee = max(self.position_manager.equity, 1e-9)
+                                self.position_manager.apply_fee(entry_fee)
+                                self.risk_manager.record_fill(
+                                    0.0,
+                                    commission_pct_of_equity=(entry_fee / equity_before_fee) * 100.0,
+                                    is_closed_trade=False,
+                                )
                         extra={"symbol": order.symbol, "side": order.side.value, "price": order.price},
                     )
 
@@ -244,7 +250,10 @@ class BacktestRunner:
             if realized is None:
                 continue
             exit_fee = abs(exit_price * pos.quantity) * self.risk_manager.config.taker_fee_rate
+            equity_before_fee = max(self.position_manager.equity, 1e-9)
             self.position_manager.apply_fee(exit_fee)
+            commission_pct = (exit_fee / equity_before_fee) * 100.0
+            self.risk_manager.record_fill(realized, commission_pct_of_equity=commission_pct)
             self._record_trade_pnl(pos.symbol, realized, trade_pnls)
             logger.debug(
                 "Closed position",
@@ -292,7 +301,10 @@ class BacktestRunner:
             if realized is None:
                 continue
             exit_fee = abs(exit_price * pos.quantity) * self.risk_manager.config.taker_fee_rate
+            equity_before_fee = max(self.position_manager.equity, 1e-9)
             self.position_manager.apply_fee(exit_fee)
+            commission_pct = (exit_fee / equity_before_fee) * 100.0
+            self.risk_manager.record_fill(realized, commission_pct_of_equity=commission_pct)
             self._record_trade_pnl(pos.symbol, realized, trade_pnls)
             logger.debug(
                 "Closed position",

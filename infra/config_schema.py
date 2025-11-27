@@ -1,10 +1,11 @@
 """Typed configuration schema shared across runtime components."""
 from __future__ import annotations
 
+from datetime import time
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 RunMode = Literal["backtest", "dry-run", "demo-live", "live"]
 
@@ -12,6 +13,44 @@ DEMO_REST_HOSTS: tuple[str, ...] = ("demo-fapi.binance.com", "testnet.binancefut
 DEMO_WS_HOSTS: tuple[str, ...] = ("binancefuture.com", "demo-fapi.binance.com")
 MAINNET_REST_HOSTS: tuple[str, ...] = ("fapi.binance.com",)
 MAINNET_WS_HOSTS: tuple[str, ...] = ("fstream.binance.com",)
+
+
+class SessionWindow(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    start: time
+    end: time
+
+    @model_validator(mode="after")
+    def _validate_bounds(self) -> "SessionWindow":
+        if self.start == self.end:
+            raise ValueError("SessionWindow start cannot equal end")
+        return self
+
+
+class SymbolRiskConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: str
+    max_leverage: int = Field(20, gt=0, le=125)
+    margin_mode: Literal["ISOLATED", "CROSSED"] = "ISOLATED"
+    max_open_positions: int = Field(1, gt=0)
+
+
+class StrategyBaseConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fast_ema: int = Field(13, gt=0)
+    slow_ema: int = Field(34, gt=0)
+    rsi_period: int = Field(14, gt=1)
+    rsi_overbought: int = Field(70, gt=0, lt=100)
+    rsi_oversold: int = Field(30, gt=0, lt=100)
+    atr_period: int = Field(14, gt=0)
+    atr_stop_multiple: float = Field(1.5, gt=0)
+    higher_tf_trend_interval: str = "15m"
+    min_atr_pct: float = Field(0.1, ge=0.0)
+    max_atr_pct: float = Field(3.0, ge=0.0)
+    no_trade_sessions: List[SessionWindow] = Field(default_factory=list)
 
 
 class PathsConfig(BaseModel):
@@ -35,6 +74,8 @@ class UniverseConfig(BaseModel):
 class RiskConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    max_trades_per_day: int = Field(500, gt=0)
+    max_commission_pct_per_day: float = Field(1.0, gt=0.0, lt=5.0)
     per_trade_risk: float = Field(0.005, gt=0.0, lt=1.0)
     leverage: float = Field(3.0, gt=0.0)
     taker_fee: float = Field(0.0004, ge=0.0)
@@ -55,6 +96,16 @@ class RiskConfig(BaseModel):
     close_positions_on_daily_loss: bool = False
     daily_loss_lookback_hours: int = Field(24, ge=1)
     require_sl_tp: bool = False
+
+    @computed_field(return_type=float)
+    @property
+    def risk_per_trade_pct(self) -> float:
+        return self.per_trade_risk * 100.0
+
+    @computed_field(return_type=float)
+    @property
+    def max_daily_drawdown_pct(self) -> float:
+        return self.max_daily_loss_pct * 100.0
 
 
 class BacktestConfig(BaseModel):
@@ -266,7 +317,11 @@ class LLMConfig(BaseModel):
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    config_version: int = Field(1, ge=1)
     run_mode: RunMode = "backtest"
+    use_testnet: bool = True
+    symbols: List[str] = Field(default_factory=list)
+    interval: str = "1m"
     paths: PathsConfig
     universe: UniverseConfig = Field(default_factory=UniverseConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -281,15 +336,66 @@ class AppConfig(BaseModel):
     rl: RLConfig = Field(default_factory=RLConfig)
     exchange: ExchangeConfig = Field(default_factory=ExchangeConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    symbol_risk: Dict[str, SymbolRiskConfig] = Field(default_factory=dict)
+    baseline_strategy: StrategyBaseConfig = Field(default_factory=StrategyBaseConfig)
+    enable_llm_signals: bool = False
+    llm_max_confidence: float = Field(0.8, ge=0.0, le=1.0)
+    trading_timezone: str = "UTC"
+    max_clock_drift_ms: int = Field(2000, gt=0)
+
+    @field_validator("symbols", mode="before")
+    @classmethod
+    def _ensure_list(cls, value: Iterable[str] | str | None) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return [str(item) for item in value if item]
+
+    @field_validator("interval")
+    @classmethod
+    def _validate_interval(cls, value: str) -> str:
+        allowed = {"1m", "3m", "5m", "15m", "30m", "1h", "4h"}
+        if value not in allowed:
+            raise ValueError(f"Unsupported interval {value}. Allowed: {sorted(allowed)}")
+        return value
 
     @model_validator(mode="after")
     def _validate_modes(self) -> "AppConfig":
+        if not self.symbols:
+            self.symbols = [sym for sym in self.universe.default_symbols]
+        self.symbols = [sym.upper() for sym in self.symbols]
+
+        normalized_symbol_risk: Dict[str, SymbolRiskConfig] = {}
+        for key, cfg in (self.symbol_risk or {}).items():
+            symbol_key = key.upper()
+            if isinstance(cfg, SymbolRiskConfig):
+                normalized_symbol_risk[symbol_key] = cfg
+            elif isinstance(cfg, dict):
+                normalized_symbol_risk[symbol_key] = SymbolRiskConfig(**{**cfg, "symbol": cfg.get("symbol", symbol_key)})
+        for sym in self.symbols:
+            normalized_symbol_risk.setdefault(sym, SymbolRiskConfig(symbol=sym, max_leverage=int(self.risk.leverage)))
+        self.symbol_risk = normalized_symbol_risk
+
+        self.llm.enabled = self.enable_llm_signals or self.llm.enabled
+        self.enable_llm_signals = self.llm.enabled
+        self.llm.max_confidence = float(self.llm_max_confidence or self.llm.max_confidence)
+        self.llm_max_confidence = self.llm.max_confidence
+
+        fields_set = getattr(self, "model_fields_set", set())
+        if "use_testnet" in fields_set:
+            resolved_use_testnet = bool(self.use_testnet)
+        else:
+            resolved_use_testnet = bool(self.exchange.use_testnet)
+        self.exchange.use_testnet = resolved_use_testnet
+        self.use_testnet = resolved_use_testnet
+
         rest_url = (self.exchange.rest_base_url or "").lower()
         ws_market_url = (self.exchange.ws_market_url or "").lower()
         ws_user_url = (self.exchange.ws_user_url or "").lower() if self.exchange.ws_user_url else ""
 
         if self.run_mode == "demo-live":
-            if not self.exchange.use_testnet:
+            if not self.use_testnet:
                 raise ValueError("Demo-live requires exchange.use_testnet to be True")
             if not any(host in rest_url for host in DEMO_REST_HOSTS):
                 raise ValueError("Demo-live requires exchange.rest_base_url to point to Binance Futures testnet")
@@ -302,7 +408,7 @@ class AppConfig(BaseModel):
             missing = [name for name in ("api_key", "api_secret") if not getattr(self.exchange, name)]
             if missing:
                 raise ValueError("Live mode requires exchange.api_key and exchange.api_secret to be set")
-            if self.exchange.use_testnet:
+            if self.use_testnet:
                 raise ValueError("Live mode requires exchange.use_testnet to be False")
             demo_rest = any(host in rest_url for host in DEMO_REST_HOSTS)
             if not any(host in rest_url for host in MAINNET_REST_HOSTS) or demo_rest:
@@ -322,5 +428,8 @@ class AppConfig(BaseModel):
             raise ValueError("risk.per_trade_risk cannot exceed risk.max_account_exposure")
         if self.risk.max_symbol_exposure > self.risk.max_account_exposure:
             raise ValueError("risk.max_symbol_exposure cannot exceed risk.max_account_exposure")
+
+        if self.max_clock_drift_ms <= 0:
+            raise ValueError("max_clock_drift_ms must be positive")
 
         return self

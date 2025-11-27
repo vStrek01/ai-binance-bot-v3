@@ -103,7 +103,11 @@ class RiskConfig(BaseModel):
     maker_fee_rate: float = 0.0002
     slippage: float = 0.0005
     max_symbol_notional_usd: float = 5_000.0
+    max_total_notional_usd: float = 10_000.0
     min_order_notional_usd: float = 10.0
+    max_trades_per_day: int = 500
+    max_commission_pct_per_day: float = 1.0
+    max_consecutive_losses: int = 5
 
     @field_validator(
         "max_risk_per_trade_pct",
@@ -112,10 +116,19 @@ class RiskConfig(BaseModel):
         "maker_fee_rate",
         "slippage",
         "max_symbol_notional_usd",
+        "max_total_notional_usd",
         "min_order_notional_usd",
+        "max_commission_pct_per_day",
     )
     @classmethod
     def _positive(cls, v: float) -> float:
         if v < 0:
             raise ValueError("Risk parameters must be non-negative")
         return v
+
+    @field_validator("max_trades_per_day", "max_consecutive_losses", "max_open_positions")
+    @classmethod
+    def _positive_ints(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("Risk limits must be non-negative")
+        return value

@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from infra.config_loader import load_config as _load_app_config
+from infra.config_loader import load_app_config as _load_app_config
 from infra.config_schema import (
     AppConfig,
     ExternalSignalConfig,

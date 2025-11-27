@@ -109,3 +109,8 @@ class BinanceClient:
 
     def exchange_info(self) -> Any:
         return self._request("GET", "/fapi/v1/exchangeInfo")
+
+    def get_exchange_info(self) -> Any:
+        """Alias used by SymbolResolver for clarity."""
+
+        return self.exchange_info()

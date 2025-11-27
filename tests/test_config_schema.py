@@ -4,7 +4,15 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from infra.config_schema import AppConfig, ExchangeConfig, LLMConfig, PathsConfig, RiskConfig, StrategyConfig
+from infra.config_schema import (
+    AppConfig,
+    ExchangeConfig,
+    LLMConfig,
+    PathsConfig,
+    RiskConfig,
+    StrategyConfig,
+    SymbolRiskConfig,
+)
 
 
 def _paths() -> PathsConfig:
@@ -22,6 +30,7 @@ def _build_valid_app_config(**overrides: Any) -> AppConfig:
     payload = {
         "run_mode": "backtest",
         "paths": _paths(),
+        "symbols": ["BTCUSDT"],
         "risk": RiskConfig(),
         "exchange": ExchangeConfig(rest_base_url="https://testnet.binancefuture.com"),
         "strategy": StrategyConfig(),
@@ -131,3 +140,22 @@ def test_live_mode_rejects_demo_urls() -> None:
                 rest_base_url="https://demo-fapi.binance.com",
             ),
         )
+
+
+def test_interval_validation_enforced() -> None:
+    with pytest.raises(ValidationError, match="Unsupported interval"):
+        _build_valid_app_config(interval="2m")
+
+
+def test_symbol_risk_defaults_to_each_symbol() -> None:
+    cfg = _build_valid_app_config(
+        symbols=["ADAUSDT"],
+        symbol_risk={"ADAUSDT": SymbolRiskConfig(symbol="ADAUSDT", max_leverage=10)},
+    )
+    assert set(cfg.symbol_risk.keys()) == {"ADAUSDT"}
+    assert cfg.symbol_risk["ADAUSDT"].max_leverage == 10
+
+
+def test_enable_llm_signals_syncs_with_llm_block() -> None:
+    cfg = _build_valid_app_config(enable_llm_signals=True)
+    assert cfg.llm.enabled is True

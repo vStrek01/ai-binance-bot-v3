@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from infra.config_schema import AppConfig, PathsConfig, RunMode
+from infra.logging import logger
 
 DEMO_REST_BASE_URL = "https://demo-fapi.binance.com"
 DEMO_WS_MARKET_URL = "wss://fstream.binancefuture.com"
@@ -20,11 +22,30 @@ class ConfigError(RuntimeError):
     """Raised when configuration or environment validation fails."""
 
 
+def _log_config_snapshot(config: AppConfig, *, source: Dict[str, bool]) -> None:
+    sanitized_exchange = config.exchange.model_dump()
+    for key in ("api_key", "api_secret"):
+        if sanitized_exchange.get(key):
+            sanitized_exchange[key] = "***redacted***"
+    payload = config.model_dump()
+    payload["exchange"] = sanitized_exchange
+    logger.info(
+        "resolved_run_mode",
+        extra={
+            "run_mode": config.run_mode,
+            "use_testnet": config.use_testnet,
+            "source": source,
+        },
+    )
+    logger.info("app_config_loaded", extra={"config_json": json.dumps(payload, default=str)})
+
+
 def load_config(
     path: str = "config.yaml",
     *,
     base_dir: Path | None = None,
     mode_override: str | None = None,
+    cli_overrides: Dict[str, Any] | None = None,
 ) -> AppConfig:
     """Load and validate the merged configuration as an AppConfig instance."""
 
@@ -32,15 +53,40 @@ def load_config(
     load_dotenv(dotenv_path=dotenv_path, override=False)
     file_config = _read_config_file(path)
     run_mode = _resolve_run_mode(file_config.get("run_mode"), mode_override)
-    merged = _merge_dicts(file_config, _build_env_overrides(run_mode, file_config.get("exchange")))
+    env_overrides = _build_env_overrides(run_mode, file_config.get("exchange"))
+    merged = _merge_dicts(file_config, env_overrides)
+    if cli_overrides:
+        merged = _merge_dicts(merged, cli_overrides)
     _apply_mode_defaults(merged, run_mode)
     merged["run_mode"] = run_mode
     merged["paths"] = _build_paths(base_dir).model_dump()
 
     try:
-        return AppConfig(**merged)
+        config = AppConfig(**merged)
     except ValidationError as exc:  # pragma: no cover - serialized below
         raise ConfigError(f"Invalid configuration: {exc}") from exc
+
+    _log_config_snapshot(
+        config,
+        source={
+            "file": bool(file_config),
+            "env": bool(env_overrides),
+            "cli": bool(cli_overrides),
+        },
+    )
+    return config
+
+
+def load_app_config(
+    path: str = "config.yaml",
+    *,
+    base_dir: Path | None = None,
+    mode_override: str | None = None,
+    cli_overrides: Dict[str, Any] | None = None,
+) -> AppConfig:
+    """Public helper exposing the canonical AppConfig loader."""
+
+    return load_config(path=path, base_dir=base_dir, mode_override=mode_override, cli_overrides=cli_overrides)
 
 
 def _read_config_file(path: str) -> Dict[str, Any]:
