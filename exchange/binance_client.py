@@ -5,6 +5,7 @@ import hmac
 import os
 import time
 import random
+from collections import OrderedDict
 from typing import Any, Dict, Optional
 
 import requests
@@ -38,8 +39,8 @@ class BinanceClient:
     def _timestamp(self) -> int:
         return int(time.time() * 1000)
 
-    def _sign(self, params: Dict[str, Any]) -> str:
-        query = "&".join([f"{k}={params[k]}" for k in sorted(params.keys()) if params[k] is not None])
+    def _sign(self, params: "OrderedDict[str, Any]") -> str:
+        query = "&".join([f"{key}={value}" for key, value in params.items()])
         return hmac.new(self.api_secret, query.encode(), hashlib.sha256).hexdigest()
 
     def _headers(self) -> Dict[str, str]:
@@ -47,16 +48,15 @@ class BinanceClient:
 
     def _request(self, method: str, path: str, params: Optional[Dict[str, Any]] = None, signed: bool = False) -> Any:
         url = f"{self.base_url}{path}"
-        params = params or {}
-        if signed:
-            params.setdefault("timestamp", self._timestamp())
-            params.setdefault("recvWindow", self.recv_window)
-            params["signature"] = self._sign(params)
+        params = dict(params or {})
 
         last_error: Optional[str] = None
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
             try:
-                resp = requests.request(method, url, params=params, headers=self._headers(), timeout=10)
+                request_params = self._prepare_params(params, signed)
+                resp = requests.request(method, url, params=request_params, headers=self._headers(), timeout=10)
+                if resp.status_code >= 400:
+                    self._log_account_diagnostic(resp, path, attempt)
                 if resp.status_code == 418 and "recvWindow" in resp.text:
                     params["recvWindow"] = max(self.recv_window, 10_000)
                 if resp.status_code == 429:
@@ -76,6 +76,29 @@ class BinanceClient:
                 self._sleep_with_backoff(attempt)
         log_event("EXCHANGE_REQUEST_FAILED", path=path, error=last_error, attempts=self.MAX_ATTEMPTS)
         raise RuntimeError(f"Binance request failed after retries: {path}")
+
+    def _prepare_params(self, params: Dict[str, Any], signed: bool) -> Any:
+        if not signed:
+            return params
+        working_params: Dict[str, Any] = dict(params)
+        working_params.setdefault("recvWindow", self.recv_window)
+        working_params["timestamp"] = self._timestamp()
+        ordered = OrderedDict((key, working_params[key]) for key in sorted(working_params.keys()) if working_params[key] is not None)
+        signature = self._sign(ordered)
+        ordered["signature"] = signature
+        return ordered
+
+    def _log_account_diagnostic(self, response: requests.Response, path: str, attempt: int) -> None:
+        if path != "/fapi/v2/account":
+            return
+        body_preview = (response.text or "")[:500]
+        log_event(
+            "EXCHANGE_ACCOUNT_DIAGNOSTIC",
+            path=path,
+            attempt=attempt,
+            status=response.status_code,
+            body=body_preview,
+        )
 
     def _sleep_with_backoff(self, attempt: int) -> None:
         delay = min(self.BASE_BACKOFF * (2 ** (attempt - 1)), self.MAX_BACKOFF)

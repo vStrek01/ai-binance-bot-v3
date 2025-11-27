@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -114,12 +115,45 @@ def _build_binance_client(cfg: BotConfig) -> BinanceClient:
     prefer_testnet = cfg.exchange.use_testnet
     api_key = get_binance_api_key(prefer_testnet=prefer_testnet, required=False)
     api_secret = get_binance_api_secret(prefer_testnet=prefer_testnet, required=False)
+    config_key = (cfg.exchange.api_key or "").strip()
+    config_secret = (cfg.exchange.api_secret or "").strip()
+    effective_api_key = api_key or config_key
+    effective_api_secret = api_secret or config_secret
     base_url = (cfg.exchange.rest_base_url or "").strip() or None
+    _log_credential_source(
+        cfg_source=bool(config_key or config_secret),
+        env_source=bool(api_key or api_secret),
+        effective_api_key=effective_api_key,
+    )
     return BinanceClient(
-        api_key=api_key or "",
-        api_secret=api_secret or "",
+        api_key=effective_api_key or "",
+        api_secret=effective_api_secret or "",
         base_url=base_url,
         testnet=prefer_testnet,
+    )
+
+
+def _hash_api_key(value: str | None) -> str | None:
+    if not value:
+        return None
+    digest = hashlib.sha256(value.encode()).hexdigest()
+    return digest[:8]
+
+
+def _log_credential_source(*, cfg_source: bool, env_source: bool, effective_api_key: str | None) -> None:
+    if not (cfg_source or env_source or effective_api_key):
+        logging_utils.log_event("EXCHANGE_CREDENTIAL_SOURCE", source="none", api_key_hash=None)
+        return
+    if cfg_source and env_source:
+        source = "env+config"
+    elif env_source:
+        source = "env"
+    else:
+        source = "config"
+    logging_utils.log_event(
+        "EXCHANGE_CREDENTIAL_SOURCE",
+        source=source,
+        api_key_hash=_hash_api_key(effective_api_key),
     )
 
 

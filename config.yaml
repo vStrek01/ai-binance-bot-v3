@@ -37,6 +37,8 @@ runtime:
 
 exchange:
   use_testnet: true
+  api_key: null
+  api_secret: null
   rest_base_url: ""
   ws_market_url: ""
   ws_user_url: ""
