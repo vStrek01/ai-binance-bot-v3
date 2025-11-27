@@ -15,6 +15,7 @@ from bot.backtester import Backtester
 from bot.backtest_core_bridge import run_core_backtest
 from bot.core.config import BotConfig, ensure_directories, load_config
 from bot.core.secrets import get_binance_api_key, get_binance_api_secret
+from bot.crash_recovery import bootstrap_crash_recovery
 from bot.exchange_info import ExchangeInfoManager
 from bot.execution.client_factory import build_data_client, build_trading_client
 from bot.learning import TradeLearningStore
@@ -30,6 +31,7 @@ from bot.rl.env import FuturesTradingEnv
 from bot.rl.policy_store import RLPolicyStore, _policy_name
 from bot.rl.trainer import RLTrainer
 from bot.rl.types import compute_baseline_hash
+from bot.risk.spec import build_core_risk_config
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
 from bot.utils.logger import get_logger
@@ -38,6 +40,7 @@ from core.models import RiskConfig as CoreRiskConfig
 from core.risk import RiskManager
 from exchange.binance_client import BinanceClient
 from exchange.symbols import SymbolResolver
+from infra.alerts import send_alert
 from infra.state_store import StateStore
 import infra.logging as logging_utils
 
@@ -120,25 +123,6 @@ def _build_binance_client(cfg: BotConfig) -> BinanceClient:
     )
 
 
-def _build_core_risk_config(cfg: BotConfig) -> CoreRiskConfig:
-    slippage = cfg.backtest.slippage_bps / 10_000
-    return CoreRiskConfig(
-        max_risk_per_trade_pct=float(cfg.risk.per_trade_risk or 0.0),
-        max_daily_drawdown_pct=float(cfg.risk.max_daily_loss_pct or 0.0),
-        max_open_positions=int(cfg.risk.max_concurrent_symbols or 1),
-        max_leverage=int(max(1, round(cfg.risk.leverage))),
-        taker_fee_rate=float(cfg.risk.taker_fee or 0.0),
-        maker_fee_rate=float(cfg.risk.maker_fee or 0.0),
-        slippage=float(slippage),
-        max_symbol_notional_usd=float(cfg.risk.max_notional_per_symbol or 0.0),
-        max_total_notional_usd=float(cfg.risk.max_notional_global or 0.0),
-        min_order_notional_usd=float(cfg.sizing.min_notional or 10.0),
-        max_trades_per_day=int(cfg.risk.max_trades_per_day or 0),
-        max_commission_pct_per_day=float(cfg.risk.max_commission_pct_per_day or 0.0),
-        max_consecutive_losses=int(cfg.risk.max_consecutive_losses or 0),
-    )
-
-
 def _should_bootstrap_runtime(cfg: BotConfig) -> bool:
     return cfg.run_mode in {"dry-run", "demo-live", "live"}
 
@@ -166,6 +150,13 @@ def _maybe_bootstrap_runtime(cfg: BotConfig) -> RuntimeContext | None:
         account_provider=account_provider,
     )
     if not health_ok:
+        send_alert(
+            "PRE_TRADE_HEALTH_FAILED",
+            severity="critical",
+            message="Pre-trade health checks failed",
+            run_mode=cfg.run_mode,
+            checks=list(health_meta.values()),
+        )
         logging_utils.log_event(
             "runtime_mode_blocked",
             run_mode=cfg.run_mode,
@@ -175,7 +166,7 @@ def _maybe_bootstrap_runtime(cfg: BotConfig) -> RuntimeContext | None:
         )
         raise SystemExit("Pre-trade health checks failed; see logs for details.")
 
-    risk_config = _build_core_risk_config(cfg)
+    risk_config = build_core_risk_config(cfg)
     risk_manager = RiskManager(
         risk_config,
         symbol_resolver=symbol_resolver,
@@ -738,6 +729,9 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
         logger.warning("LLM insights enabled for demo-live session. Disable via llm.enabled=false to keep deterministic baseline.")
     else:
         logger.info("LLM insights remain disabled for demo-live")
+    runtime_ctx = get_runtime_context()
+    state_store = runtime_ctx.state_store if runtime_ctx else None
+    resume_run = getattr(args, "resume_run", None) or os.getenv("BOT_RESUME_RUN")
     use_best = getattr(args, "use_best", False)
     if cfg.runtime.dry_run:
         logger.info("BOT_DRY_RUN detected; running demo-live smoke test with paper execution only")
@@ -767,6 +761,13 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
     trading_client = build_trading_client(cfg)
     exchange = ExchangeInfoManager(cfg, client=trading_client)
     exchange.refresh(force=True)
+    if resume_run:
+        bootstrap_crash_recovery(
+            base_dir=cfg.paths.data_dir / "state",
+            resume_run_id=resume_run,
+            trading_client=trading_client,
+            state_store=state_store,
+        )
     symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
     markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
     logger.info("Initializing demo-live runner for symbols: %s", ", ".join(symbols))
@@ -785,6 +786,7 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
         portfolio_meta=portfolio_meta,
         learning_store=learning_store,
         mode_label="demo-live",
+        state_store=state_store,
     )
     asyncio.run(runner.run())
 
@@ -898,6 +900,10 @@ def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
     )
     demo_live.add_argument("--interval", required=True, help="Interval to trade")
     demo_live.add_argument("--use-best", action="store_true", help="Apply optimized parameters when available")
+    demo_live.add_argument(
+        "--resume-run",
+        help="Optional previous run_id to compare against for crash recovery",
+    )
     demo_live.set_defaults(func=cmd_demo_live)
 
     train_rl = subparsers.add_parser("train-rl", help="Train the reinforcement learning agent")

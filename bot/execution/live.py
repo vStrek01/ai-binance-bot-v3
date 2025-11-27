@@ -19,7 +19,10 @@ from bot.risk import RiskEngine, TradeEvent, volatility_snapshot
 from bot.signals.strategies import StrategyParameters, StrategySignal
 from bot.status import status_store
 from bot.utils.logger import get_logger
+from exchange.data_health import get_data_health_monitor
+from infra.alerts import send_alert
 from infra.logging import log_event
+from infra.state_store import StateStore
 
 logger = get_logger(__name__)
 
@@ -44,13 +47,16 @@ class LiveTrader(MultiSymbolRunnerBase):
         portfolio_meta: Optional[Dict[str, Any]] = None,
         learning_store: Optional[TradeLearningStore] = None,
         mode_label: str = "live",
+        state_store: StateStore | None = None,
     ) -> None:
         self._config = cfg
         self._account_asset = cfg.runtime.demo_account_asset.upper()
         self.client = client
         self.order_logger = OrderAuditLogger(cfg)
         self.trade_logger = LiveTradeLogger(cfg)
+        self._data_health = get_data_health_monitor()
         self.learning_store = resolve_learning_store(cfg, learning_store)
+        self._state_store = state_store
         self._applied_learning: Dict[str, Dict[str, Any]] = {}
         self._last_trade_refresh = 0.0
         self._last_position_snapshot: List[Dict[str, Any]] = []
@@ -93,6 +99,7 @@ class LiveTrader(MultiSymbolRunnerBase):
                 sizing_builder=self._build_sizing_context,
                 timestamp_fn=self._timestamp_from_row,
                 log_sizing_skip=self._log_sizing_skip,
+                data_health=self._data_health,
             )
             for ctx in self.contexts
         }
@@ -126,6 +133,8 @@ class LiveTrader(MultiSymbolRunnerBase):
         loop = self._market_loops.get(ctx.symbol)
         if not loop:
             return
+        if not self._allow_trade_due_to_data_health(ctx, stage="entry"):
+            return
         exposure = self._risk_engine.compute_exposure(self.balance_manager.exposure_payload())
         plan = loop.plan_entry(
             frame,
@@ -143,6 +152,7 @@ class LiveTrader(MultiSymbolRunnerBase):
         if not success:
             return
         ctx.position = plan.position
+        self._risk_engine.record_trade_entry()
         logger.info(
             "Opened %s position qty=%.4f entry=%.2f for %s %s",
             "LONG" if plan.signal.direction == 1 else "SHORT",
@@ -180,6 +190,37 @@ class LiveTrader(MultiSymbolRunnerBase):
 
     def _balance_for_risk(self) -> float:
         return self._refresh_account_balance()
+
+    def _allow_trade_due_to_data_health(self, ctx: MarketContext, *, stage: str) -> bool:
+        if ctx.run_mode == "backtest" or self._data_health is None:
+            return True
+        status = self._data_health.is_data_stale(ctx.symbol, ctx.timeframe)
+        if status.healthy or status.last_update is None:
+            return True
+        self._data_health.is_healthy(ctx.symbol, ctx.timeframe)
+        log_event(
+            "DATA_UNHEALTHY",
+            run_mode=ctx.run_mode,
+            symbol=ctx.symbol,
+            interval=ctx.timeframe,
+            stage=stage,
+            source="live_trader",
+            seconds_since_update=status.seconds_since_update,
+            threshold_seconds=status.threshold_seconds,
+        )
+        send_alert(
+            "DATA_UNHEALTHY",
+            severity="warning",
+            message="Live trader rejected signal due to stale data",
+            run_mode=ctx.run_mode,
+            symbol=ctx.symbol,
+            interval=ctx.timeframe,
+            stage=stage,
+            source="live_trader",
+            seconds_since_update=status.seconds_since_update,
+            threshold_seconds=status.threshold_seconds,
+        )
+        return False
 
     def _ensure_leverage(self, symbol: str) -> None:
         try:
@@ -466,7 +507,42 @@ class LiveTrader(MultiSymbolRunnerBase):
             status_store.set_open_pnl(total_open)
             self._publish_symbol_summaries(status_entries)
             self._reconcile_position_cache(status_entries)
+            self._persist_recovery_snapshot(status_entries)
         self._sync_recent_trades(force=force, backfill=backfill_trades)
+
+    def _persist_recovery_snapshot(self, entries: List[Dict[str, Any]]) -> None:
+        if self._state_store is None:
+            return
+        snapshot: Dict[str, Dict[str, Any]] = {}
+        for entry in entries:
+            symbol = str(entry.get("symbol") or "").upper()
+            if not symbol:
+                continue
+            quantity = self._safe_float(entry.get("quantity"), 0.0)
+            if quantity <= 0:
+                continue
+            side = str(entry.get("side") or "").upper()
+            direction = 1 if side in {"LONG", "BUY"} else -1
+            snapshot[symbol] = {
+                "symbol": symbol,
+                "timeframe": entry.get("timeframe"),
+                "side": side,
+                "direction": direction,
+                "quantity": quantity,
+                "entry_price": self._safe_float(entry.get("entry_price"), 0.0),
+                "mark_price": self._safe_float(entry.get("mark_price"), 0.0),
+                "position_side": entry.get("position_side"),
+            }
+        payload = {
+            "positions": snapshot,
+            "mode_label": self.mode_label,
+            "run_mode": self._config.run_mode,
+            "updated_at": time.time(),
+        }
+        try:
+            self._state_store.merge(live_positions=payload)
+        except Exception as exc:  # noqa: BLE001 - persistence must not break trading loop
+            logger.warning("Failed to persist recovery snapshot: %s", exc)
 
     def _format_exchange_status(self, snapshot: ExchangePosition) -> Optional[Dict[str, Any]]:
         ctx = self._ctx_lookup.get(snapshot.symbol)

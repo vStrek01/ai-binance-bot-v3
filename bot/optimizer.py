@@ -18,11 +18,12 @@ from bot.status import status_store
 from bot.strategies import build_parameters
 from bot.utils.fileio import atomic_write_text
 from bot.utils.logger import get_logger
+from exchange.symbols import SymbolInfo
 
 logger = get_logger(__name__)
 
 ParamDict = Dict[str, float | int]
-Snapshot = Dict[str, Dict[str, float]]
+Snapshot = Dict[str, Dict[str, Any]]
 Task = Tuple[str, str, ParamDict, Snapshot]
 
 
@@ -52,10 +53,19 @@ def _normalize(params: ParamDict, cfg: BotConfig) -> ParamDict:
     return normalized
 
 
+def _filters_from_snapshot(data: Dict[str, Any]) -> SymbolFilters:
+    payload = data.get("symbol_info") if isinstance(data, dict) else None
+    if payload:
+        info = SymbolInfo.from_dict(payload)
+        return SymbolFilters.from_symbol_info(info)
+    sanitized = {k: v for k, v in data.items() if k != "symbol_info"}
+    return SymbolFilters(**sanitized)
+
+
 def _run_task(task: Task) -> Dict[str, Any]:
     cfg = _require_optimizer_config()
     symbol, timeframe, params, snapshot = task
-    prefetched = {sym: SymbolFilters(**data) for sym, data in snapshot.items()}
+    prefetched = {sym: _filters_from_snapshot(data) for sym, data in snapshot.items()}
     exchange = ExchangeInfoManager(cfg, client=None, prefetched=prefetched)
     backtester = Backtester(cfg, exchange)
     try:

@@ -9,16 +9,25 @@ import websockets
 
 from core.models import Candle
 from infra.logging import logger
+from exchange.data_health import DataHealthMonitor, get_data_health_monitor
 
 
 class BinanceStream:
-    def __init__(self, symbol: str, interval: str = "1m", testnet: bool = True, ws_market_url: Optional[str] = None):
+    def __init__(
+        self,
+        symbol: str,
+        interval: str = "1m",
+        testnet: bool = True,
+        ws_market_url: Optional[str] = None,
+        data_health: Optional[DataHealthMonitor] = None,
+    ):
         self.symbol = symbol.upper()
         self.interval = interval
         self.testnet = testnet
         base_url = ws_market_url or ("wss://fstream.binancefuture.com" if testnet else "wss://fstream.binance.com")
         self.ws_url = self._build_stream_url(base_url)
         self.history: List[Candle] = []
+        self.data_health = data_health or get_data_health_monitor()
 
     def _build_stream_url(self, base_url: str) -> str:
         normalized = (base_url or "").strip()
@@ -58,8 +67,14 @@ class BinanceStream:
                             volume=float(kline["v"]),
                         )
                         self.history.append(candle)
+                        self._mark_update(candle)
                         yield candle
             except Exception as exc:  # pragma: no cover - network
                 logger.error("Websocket error", extra={"error": str(exc)})
                 await asyncio.sleep(5)
                 continue
+
+    def _mark_update(self, candle: Candle) -> None:
+        if not self.data_health:
+            return
+        self.data_health.mark_update(candle.symbol, self.interval, timestamp=candle.close_time)

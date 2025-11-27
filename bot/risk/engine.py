@@ -4,12 +4,15 @@ from __future__ import annotations
 import time
 from collections import deque
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from bot.core.config import BotConfig, RiskConfig
 from bot.execution.exchange import SymbolFilters
+from bot.risk.spec import build_core_risk_config
 from bot.utils.logger import get_logger
+from core.risk_shared import DailyRiskState, evaluate_kill_switch
 
 logger = get_logger(__name__)
 
@@ -62,6 +65,7 @@ class TradeEvent:
     equity: float
     timestamp: Optional[float] = None
     symbol: Optional[str] = None
+    commission_pct_of_equity: float = 0.0
 
 
 @dataclass(slots=True)
@@ -117,6 +121,8 @@ class RiskEngine:
         self._demo_mode = cfg.run_mode == "demo-live"
         self._abs_symbol_cap = max(float(cfg.risk.max_notional_per_symbol or 0.0), 0.0)
         self._abs_global_cap = max(float(cfg.risk.max_notional_global or 0.0), 0.0)
+        self._core_risk = build_core_risk_config(cfg)
+        self._daily_state: Optional[DailyRiskState] = None
 
     def on_balance_refresh(self, free_balance: float) -> None:
         """Releases cached warnings once free margin recovers."""
@@ -145,15 +151,18 @@ class RiskEngine:
     def update_equity(self, equity: float) -> None:
         sanitized = max(equity, 0.0)
         self._last_equity = sanitized
+        self._ensure_daily_state(sanitized)
         if not self._pnl_window:
             self._reference_equity = sanitized
         self._prune_loss_window(time.time())
+        self._refresh_kill_switch(sanitized)
 
     def register_trade(self, trade: TradeEvent) -> None:
         now = self._sanitize_timestamp(trade.timestamp)
         self.update_equity(trade.equity)
         self._pnl_window.append((now, trade.pnl))
         self._window_realized += trade.pnl
+        self._record_daily_fill(trade)
         if trade.pnl < 0:
             self._loss_streak += 1
         elif trade.pnl > 0:
@@ -164,6 +173,7 @@ class RiskEngine:
         if self._max_loss_streak > 0 and self._loss_streak >= self._max_loss_streak:
             self._trigger_loss_streak(now, symbol=trade.symbol)
         self._evaluate_daily_limits(now, symbol=trade.symbol)
+        self._refresh_kill_switch(trade.equity)
 
     def evaluate_open(self, request: OpenTradeRequest) -> RiskDecision:
         self.update_equity(request.equity)
@@ -224,6 +234,7 @@ class RiskEngine:
     def reset_daily_limits(self) -> None:
         self._pnl_window.clear()
         self._reset_loss_window()
+        self._daily_state = None
 
     def snapshot(self) -> Dict[str, Any]:
         state = self.current_state()
@@ -380,6 +391,57 @@ class RiskEngine:
         logger.warning(
             "risk_event", extra={"event_type": event_type, "reason": reason, "symbol": symbol, "equity": state.equity}
         )
+
+    def record_trade_entry(self) -> None:
+        self._ensure_daily_state(self._last_equity)
+        if not self._daily_state:
+            return
+        self._daily_state.trades_count += 1
+        self._refresh_kill_switch(self._last_equity)
+
+    def _record_daily_fill(self, trade: TradeEvent) -> None:
+        if not self._daily_state:
+            return
+        self._daily_state.realized_pnl += trade.pnl
+        self._daily_state.commission_paid_pct += max(trade.commission_pct_of_equity, 0.0)
+        if trade.pnl < 0:
+            self._daily_state.consecutive_losses += 1
+        elif trade.pnl > 0:
+            self._daily_state.consecutive_losses = 0
+
+    def _ensure_daily_state(self, equity: float) -> None:
+        today = date.today()
+        if self._daily_state and self._daily_state.session_date == today:
+            return
+        starting_equity = max(equity, 0.0)
+        self._daily_state = DailyRiskState(session_date=today, starting_equity=starting_equity)
+        self._pnl_window.clear()
+        was_manual = self._trading_mode == TradingMode.HALTED_MANUAL
+        manual_reason = self._halt_reason if was_manual else None
+        self._reset_loss_window()
+        if was_manual:
+            self._trading_mode = TradingMode.HALTED_MANUAL
+            self._halt_reason = manual_reason
+
+    def _refresh_kill_switch(self, equity: Optional[float]) -> None:
+        if self._trading_mode == TradingMode.HALTED_MANUAL:
+            return
+        reasons = evaluate_kill_switch(self._core_risk, self._daily_state, equity=equity, relaxed_drawdown=False)
+        if not reasons:
+            return
+        reason_text = "|".join(reasons)
+        target_mode = TradingMode.HALTED_DAILY_LOSS
+        if len(reasons) == 1 and reasons[0] == "consecutive_losses":
+            target_mode = TradingMode.HALTED_LOSS_STREAK
+        if self._trading_mode == target_mode and self._halt_reason == reason_text:
+            return
+        self._trading_mode = target_mode
+        self._halt_reason = reason_text
+        self._loss_triggered_at = time.time()
+        if self._config.risk.close_positions_on_daily_loss:
+            self._flatten_positions = True
+        self._state_version += 1
+        self._record_event("risk_kill_switch", None, reason_text)
 
     def _sanitize_timestamp(self, timestamp: Optional[float]) -> float:
         try:

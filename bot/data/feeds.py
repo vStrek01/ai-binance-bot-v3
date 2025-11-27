@@ -9,6 +9,7 @@ from bot.core.config import BotConfig, ensure_directories
 from bot.execution.client_factory import build_data_client
 from bot.execution.exchange_client import ExchangeRequestError
 from bot.utils.logger import get_logger
+from exchange.data_health import get_data_health_monitor
 
 logger = get_logger(__name__)
 
@@ -86,6 +87,7 @@ def download_klines(
 
     frame = _klines_to_frame(rows, symbol, interval)
     validate_candles(frame, symbol, interval)
+    _mark_data_health(symbol, interval, frame)
     if save:
         ensure_directories(cfg.paths)
         path = cfg.paths.data_dir / f"{symbol}_{interval}.csv"
@@ -111,6 +113,7 @@ def fetch_recent_candles(cfg: BotConfig, symbol: str, interval: str, limit: int 
     )
     frame = _klines_to_frame(rows, symbol, interval)
     validate_candles(frame, symbol, interval)
+    _mark_data_health(symbol, interval, frame)
     return frame
 
 
@@ -171,6 +174,15 @@ def validate_candles(frame: pd.DataFrame, symbol: str, interval: str) -> None:
         raise CandleValidationError(f"{symbol} {interval} has inconsistent high/low values at rows {bad_idx}")
     if (frame["volume"] < 0).any():
         raise CandleValidationError(f"{symbol} {interval} contains negative volume values")
+
+
+def _mark_data_health(symbol: str, interval: str, frame: pd.DataFrame) -> None:
+    if frame.empty:
+        return
+    last_close = frame["close_time"].iloc[-1]
+    timestamp = last_close.to_pydatetime() if hasattr(last_close, "to_pydatetime") else last_close
+    monitor = get_data_health_monitor()
+    monitor.mark_update(symbol, interval, timestamp=timestamp)
 
 
 __all__ = [

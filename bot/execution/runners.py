@@ -256,7 +256,7 @@ class MultiSymbolRunnerBase:
         price = float(latest_row["close"])
         volatility = volatility_snapshot(frame, self._config)
         balance = self._balance_for_risk()
-        sizing_ctx = self._build_sizing_context(ctx, price, volatility)
+        sizing_ctx = self._build_sizing_context(ctx, price, volatility, signal.stop_loss)
         if sizing_ctx is None:
             logger.debug("Missing sizing context for %s %s", ctx.symbol, ctx.timeframe)
             return
@@ -303,6 +303,7 @@ class MultiSymbolRunnerBase:
         if not self._on_position_open_request(ctx, position, latest_row, signal):
             return
         ctx.position = position
+        self._notify_trade_entry()
         logger.info(
             "Opened %s position qty=%.4f entry=%.2f for %s %s",
             "LONG" if signal.direction == 1 else "SHORT",
@@ -444,6 +445,7 @@ class MultiSymbolRunnerBase:
         ctx: MarketContext,
         price: float,
         volatility: Dict[str, float],
+        stop_loss: Optional[float],
     ) -> Optional[SizingContext]:
         max_notional = self._max_trade_notional(ctx, price)
         filters = self.exchange_info.get_filters(ctx.symbol)
@@ -455,6 +457,7 @@ class MultiSymbolRunnerBase:
             available_balance=self._available_margin_for_risk(),
             price=price,
             params=ctx.params,
+            stop_loss=stop_loss,
             volatility=volatility,
             filters=filters,
             max_notional=max_notional,
@@ -508,6 +511,10 @@ class MultiSymbolRunnerBase:
 
     def _active_position_count(self) -> int:
         return sum(1 for ctx in self.contexts if ctx.position and ctx.position.quantity > 0)
+
+    def _notify_trade_entry(self) -> None:
+        if self._risk_engine:
+            self._risk_engine.record_trade_entry()
 
     def _force_flatten_positions(self, reason: str) -> None:
         timestamp = datetime.utcnow().isoformat()

@@ -14,7 +14,9 @@ from bot.risk import ExternalSignalGate, MultiTimeframeFilter, PositionSizer, vo
 from bot.risk.engine import ExposureState
 from bot.risk.sizing import SizingContext
 from bot.signals.strategies import StrategySignal
+from infra.alerts import send_alert
 from infra.logging import log_event
+from exchange.data_health import DataHealthMonitor, DataHealthStatus, get_data_health_monitor
 
 
 @dataclass(slots=True)
@@ -45,9 +47,10 @@ class MarketLoop:
         multi_filter: MultiTimeframeFilter,
         external_gate: ExternalSignalGate,
         exchange_info: ExchangeInfoManager,
-        sizing_builder: Callable[[MarketContext, float, Dict[str, float]], Optional[SizingContext]],
+        sizing_builder: Callable[[MarketContext, float, Dict[str, float], Optional[float]], Optional[SizingContext]],
         timestamp_fn: Callable[[pd.Series], str],
         log_sizing_skip: Callable[[MarketContext, Optional[str]], None],
+        data_health: Optional[DataHealthMonitor] = None,
     ) -> None:
         self._ctx = ctx
         self._cfg = cfg
@@ -59,6 +62,7 @@ class MarketLoop:
         self._sizing_builder = sizing_builder
         self._timestamp_fn = timestamp_fn
         self._log_sizing_skip = log_sizing_skip
+        self._data_health = data_health or get_data_health_monitor()
 
     def plan_entry(
         self,
@@ -70,6 +74,8 @@ class MarketLoop:
         available_balance: float,
         exposure: ExposureState,
     ) -> Optional[EntryPlan]:
+        if not self._data_health_allows_trade(stage="entry"):
+            return None
         signal = self._latest_signal(frame)
         if signal is None:
             return None
@@ -79,7 +85,7 @@ class MarketLoop:
             self._log_veto("risk_precheck", "missing_sl_tp")
             self._log_sizing_skip(self._ctx, "missing_sl_tp")
             return None
-        sizing_ctx = self._sizing_builder(self._ctx, price, volatility)
+        sizing_ctx = self._sizing_builder(self._ctx, price, volatility, signal.stop_loss)
         if sizing_ctx is None:
             self._log_veto("sizing", "context_unavailable")
             return None
@@ -238,6 +244,34 @@ class MarketLoop:
         }
         payload.update(details)
         log_event("STRATEGY_VETO", **payload)
+
+    def _data_health_allows_trade(self, *, stage: str) -> bool:
+        if self._ctx.run_mode == "backtest" or not self._data_health:
+            return True
+        status = self._data_health.is_data_stale(self._ctx.symbol, self._ctx.timeframe)
+        if status.healthy or status.last_update is None:
+            return True
+        self._data_health.is_healthy(self._ctx.symbol, self._ctx.timeframe)
+        self._log_data_unhealthy(stage, status)
+        return False
+
+    def _log_data_unhealthy(self, stage: str, status: DataHealthStatus) -> None:
+        payload = {
+            "run_mode": self._ctx.run_mode,
+            "symbol": self._ctx.symbol,
+            "interval": self._ctx.timeframe,
+            "stage": stage,
+            "source": "market_loop",
+            "seconds_since_update": status.seconds_since_update,
+            "threshold_seconds": status.threshold_seconds,
+        }
+        log_event("DATA_UNHEALTHY", **payload)
+        send_alert(
+            "DATA_UNHEALTHY",
+            severity="warning",
+            message="Market loop blocked due to stale data",
+            **payload,
+        )
 
 
 __all__ = ["MarketLoop", "EntryPlan", "ExitPlan"]

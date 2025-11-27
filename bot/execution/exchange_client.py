@@ -21,6 +21,7 @@ except Exception:  # noqa: BLE001 - fallback when requests is unavailable
     requests_exceptions = _RequestsFallback()
 
 from bot.utils.logger import get_logger
+from infra.alerts import send_alert
 from infra.logging import log_event
 
 logger = get_logger(__name__)
@@ -251,6 +252,18 @@ class ExchangeClient:
                 self._circuit_cooldown,
                 self._consecutive_failures,
                 category,
+            )
+            payload = {
+                "cooldown": self._circuit_cooldown,
+                "failures": self._consecutive_failures,
+                "category": category,
+            }
+            log_event("exchange_circuit_open", **payload)
+            send_alert(
+                "EXCHANGE_CIRCUIT_OPEN",
+                severity="critical",
+                message="Exchange circuit breaker engaged",
+                **payload,
             )
 
     def _record_success(self) -> None:

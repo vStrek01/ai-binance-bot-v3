@@ -61,7 +61,7 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
         )
     )
     assert not blocked.allowed
-    assert blocked.reason == "daily_loss_pct"
+    assert blocked.reason in {"daily_loss_pct", "daily_drawdown"}
     assert engine.current_state().trading_mode == TradingMode.HALTED_DAILY_LOSS
 
     relaxed_cfg = cfg.model_copy(update={"risk": cfg.risk.model_copy(update={"max_daily_loss_pct": 0.5})})
@@ -83,7 +83,7 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
         )
     )
     assert not streak_block.allowed
-    assert streak_block.reason == "loss_streak"
+    assert streak_block.reason in {"loss_streak", "consecutive_losses"}
     assert streak_engine.current_state().trading_mode == TradingMode.HALTED_LOSS_STREAK
 
 

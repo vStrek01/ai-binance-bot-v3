@@ -11,6 +11,8 @@ from core.safety import SafetyLimits, SafetyState, check_kill_switch
 from exchange.order_router import OrderRouter
 from exchange.binance_stream import BinanceStream
 from exchange.base import Exchange
+from exchange.data_health import DataHealthMonitor, DataHealthStatus, get_data_health_monitor
+from infra.alerts import send_alert
 from infra.logging import logger, log_event
 
 
@@ -25,6 +27,7 @@ class TradingEngine:
         safety_limits: Optional[SafetyLimits] = None,
         exchange: Optional[Exchange] = None,
         run_mode: str = "backtest",
+        data_health: Optional[DataHealthMonitor] = None,
     ):
         self.strategy = strategy
         self.risk_manager = risk_manager
@@ -35,6 +38,7 @@ class TradingEngine:
         self.kill_switch_engaged = False
         self.exchange = exchange
         self.run_mode = run_mode
+        self.data_health = data_health or get_data_health_monitor()
 
     def get_status(self):
         open_positions = self.position_manager.get_open_positions()
@@ -43,6 +47,8 @@ class TradingEngine:
         return {"equity": equity, "open_positions": [p.model_dump() for p in open_positions], "drawdown": drawdown}
 
     def map_signal_to_order(self, signal: Signal, price: float) -> Optional[OrderRequest]:
+        if not self._allow_trade_due_to_data_health(source="map_signal"):
+            return None
         if self._kill_switch_active():
             return None
         if signal.action == Side.FLAT:
@@ -83,6 +89,8 @@ class TradingEngine:
             )
             self._log_equity_snapshot(symbol=candle.symbol, mark_price=candle.close)
             if candle.close_time != self.stream.history[-1].close_time:
+                continue
+            if not self._allow_trade_due_to_data_health(source="run_live_loop"):
                 continue
             self.risk_manager.reset_day_if_needed(self.position_manager.equity)
             if self._kill_switch_active():
@@ -189,4 +197,33 @@ class TradingEngine:
             unrealized_pnl=0.0,
             open_positions=len(self.position_manager.get_open_positions()),
             run_mode=self.run_mode,
+        )
+
+    def _allow_trade_due_to_data_health(self, *, source: str) -> bool:
+        if self.run_mode == "backtest":
+            return True
+        if not self.data_health or not self.stream:
+            return True
+        status = self.data_health.is_data_stale(self.stream.symbol, self.stream.interval)
+        if status.healthy or status.last_update is None:
+            return True
+        self.data_health.is_healthy(self.stream.symbol, self.stream.interval)
+        self._log_data_unhealthy(status, source)
+        return False
+
+    def _log_data_unhealthy(self, status: DataHealthStatus, source: str) -> None:
+        payload = {
+            "symbol": self.stream.symbol if self.stream else None,
+            "interval": self.stream.interval if self.stream else None,
+            "run_mode": self.run_mode,
+            "source": source,
+            "seconds_since_update": status.seconds_since_update,
+            "threshold_seconds": status.threshold_seconds,
+        }
+        log_event("DATA_UNHEALTHY", **payload)
+        send_alert(
+            "DATA_UNHEALTHY",
+            severity="warning",
+            message="Data health check rejected trading",
+            **payload,
         )

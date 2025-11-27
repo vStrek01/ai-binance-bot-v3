@@ -1,30 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Optional
 
 from core.models import MarketState, OrderRequest, RiskConfig
+from core.risk_shared import DailyRiskState, apply_notional_limits, evaluate_kill_switch, stop_based_position_size
 from exchange.symbols import SymbolInfo, SymbolResolver
+from infra.alerts import send_alert
 from infra.logging import logger, log_event
 from infra.state_store import StateStore
-
-
-@dataclass(slots=True)
-class DailyRiskState:
-    session_date: date
-    starting_equity: float
-    realized_pnl: float = 0.0
-    trades_count: int = 0
-    commission_paid_pct: float = 0.0
-    consecutive_losses: int = 0
-
-    @property
-    def drawdown_pct(self) -> float:
-        if self.starting_equity <= 0:
-            return 0.0
-        dd = -self.realized_pnl / self.starting_equity * 100.0
-        return max(dd, 0.0)
 
 
 class RiskManager:
@@ -82,13 +66,10 @@ class RiskManager:
 
     def validate(self, order: OrderRequest, state: MarketState) -> Optional[OrderRequest]:
         self.reset_day_if_needed(state.equity)
+        self._update_kill_switch(equity=state.equity)
         if self.kill_switch_active:
             logger.warning("Kill switch active; blocking order", extra={"symbol": order.symbol})
             self._log_order_rejected(order, "kill_switch_active", equity=state.equity)
-            return None
-        if self.relaxed_drawdown is False and self._breached_drawdown(state.equity):
-            self._activate_kill_switch(reason="daily_drawdown")
-            self._log_order_rejected(order, "daily_drawdown", equity=state.equity)
             return None
         if len(state.open_positions) >= self.config.max_open_positions:
             logger.info("Max open positions reached", extra={"symbol": order.symbol})
@@ -160,18 +141,16 @@ class RiskManager:
         stop_price: float,
         symbol_info: SymbolInfo | None,
     ) -> float:
-        risk_amount = max(equity, 0.0) * max(self.config.max_risk_per_trade_pct, 0.0)
-        distance = abs(entry_price - stop_price)
-        if distance <= 0:
+        qty = stop_based_position_size(
+            equity=equity,
+            entry_price=entry_price,
+            stop_price=stop_price,
+            max_risk_per_trade_pct=self.config.max_risk_per_trade_pct,
+            symbol_info=symbol_info,
+        )
+        if qty <= 0:
             logger.warning("Invalid stop distance", extra={"entry": entry_price, "stop": stop_price})
-            return 0.0
-        qty = risk_amount / distance
-        if symbol_info:
-            qty = symbol_info.round_qty(qty)
-            if not symbol_info.validate_notional(entry_price, qty):
-                min_qty = float(symbol_info.min_notional) / entry_price if entry_price else 0.0
-                qty = symbol_info.round_qty(min_qty)
-        return max(qty, 0.0)
+        return qty
 
     def _apply_notional_limits(
         self,
@@ -181,54 +160,36 @@ class RiskManager:
         state: MarketState,
         symbol_info: SymbolInfo | None,
     ) -> float:
-        notional = qty * price
-        if notional < self.config.min_order_notional_usd:
-            logger.info("Order below min notional", extra={"symbol": symbol, "notional": notional})
-            return 0.0
-
         symbol_open_notional = sum(
             abs(pos.quantity * pos.entry_price)
             for pos in state.open_positions
             if pos.symbol == symbol and pos.is_open()
         )
         total_notional = sum(abs(pos.quantity * pos.entry_price) for pos in state.open_positions if pos.is_open())
+        sized = apply_notional_limits(
+            qty,
+            price=price,
+            min_order_notional=self.config.min_order_notional_usd,
+            symbol_info=symbol_info,
+            symbol_cap_usd=self._symbol_cap_usd,
+            total_cap_usd=self._total_cap_usd,
+            symbol_open_notional=symbol_open_notional,
+            total_open_notional=total_notional,
+        )
+        if sized <= 0:
+            logger.info(
+                "Order below caps",
+                extra={"symbol": symbol, "notional": qty * price, "min_notional": self.config.min_order_notional_usd},
+            )
+        return sized
 
-        symbol_cap = self._symbol_cap_usd
-        if symbol_cap is not None and notional + symbol_open_notional > symbol_cap:
-            allowed = max(symbol_cap - symbol_open_notional, 0.0)
-            qty = allowed / price if price else 0.0
-        total_cap = self._total_cap_usd
-        if total_cap is not None and notional + total_notional > total_cap:
-            allowed = max(total_cap - total_notional, 0.0)
-            qty = min(qty, allowed / price if price else 0.0)
-        if symbol_info:
-            qty = symbol_info.round_qty(qty)
-        if qty * price < self.config.min_order_notional_usd:
-            return 0.0
-        return max(qty, 0.0)
-
-    def _update_kill_switch(self) -> None:
-        if self._daily_state is None or self.relaxed_drawdown:
-            return
-        reasons = []
-        drawdown_limit = self.config.max_daily_drawdown_pct * 100.0
-        if drawdown_limit > 0 and self._daily_state.drawdown_pct >= drawdown_limit:
-            reasons.append("daily_drawdown")
-        if (
-            self.config.max_consecutive_losses > 0
-            and self._daily_state.consecutive_losses >= self.config.max_consecutive_losses
-        ):
-            reasons.append("consecutive_losses")
-        if (
-            self.config.max_trades_per_day > 0
-            and self._daily_state.trades_count >= self.config.max_trades_per_day
-        ):
-            reasons.append("trade_limit")
-        if (
-            self.config.max_commission_pct_per_day > 0
-            and self._daily_state.commission_paid_pct >= self.config.max_commission_pct_per_day
-        ):
-            reasons.append("commission")
+    def _update_kill_switch(self, equity: Optional[float] = None) -> None:
+        reasons = evaluate_kill_switch(
+            self.config,
+            self._daily_state,
+            equity=equity,
+            relaxed_drawdown=self.relaxed_drawdown,
+        )
         if reasons:
             self._activate_kill_switch(reason="|".join(reasons))
         else:
@@ -241,23 +202,23 @@ class RiskManager:
         self.kill_switch_reason = reason
         payload = {
             "reason": reason,
-            "drawdown_pct": self._daily_state.drawdown_pct if self._daily_state else None,
+            "drawdown_pct": self._daily_state.drawdown_pct() if self._daily_state else None,
             "trades": self._daily_state.trades_count if self._daily_state else None,
             "consecutive_losses": self._daily_state.consecutive_losses if self._daily_state else None,
         }
         log_event("risk_kill_switch_triggered", **payload)
         log_event("KILL_SWITCH_TRIGGERED", **payload)
         logger.error("Kill switch activated", extra={"reason": reason})
+        send_alert(
+            "KILL_SWITCH_TRIGGERED",
+            severity="critical",
+            message="Risk kill switch activated",
+            reason=reason,
+            drawdown_pct=payload.get("drawdown_pct"),
+            trades=payload.get("trades"),
+            consecutive_losses=payload.get("consecutive_losses"),
+        )
         self._persist_state()
-
-    def _breached_drawdown(self, equity: float) -> bool:
-        if self.relaxed_drawdown or self._daily_state is None:
-            return False
-        start_equity = self._daily_state.starting_equity
-        if start_equity <= 0:
-            return False
-        dd_ratio = (start_equity - equity) / start_equity
-        return dd_ratio >= self.config.max_daily_drawdown_pct
 
     def _resolve_symbol(self, symbol: str) -> SymbolInfo | None:
         if not self.symbol_resolver:
