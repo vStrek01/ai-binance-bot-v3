@@ -150,7 +150,7 @@ class FullCycleRunner:
                 logger.info("Using optimized parameters for %s %s", symbol, timeframe)
             else:
                 logger.info("Falling back to default parameters for %s %s", symbol, timeframe)
-            plans.append((symbol, timeframe, build_parameters(self._config, overrides)))
+            plans.append((symbol, timeframe, build_parameters(self._config, symbol=symbol, overrides=overrides)))
         return plans
 
     async def _launch_runtime(self, markets: Sequence[Tuple[str, str, StrategyParameters]]) -> None:

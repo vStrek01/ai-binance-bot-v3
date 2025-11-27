@@ -474,7 +474,7 @@ def _build_strategy_params(
     rl_context: str,
 ) -> StrategyParameters:
     overrides, _ = _resolve_strategy_overrides(cfg, symbol, interval, use_best, rl_context=rl_context)
-    return build_parameters(cfg, overrides)
+    return build_parameters(cfg, symbol=symbol, overrides=overrides)
 
 
 def build_strategy_params_with_meta(
@@ -486,7 +486,7 @@ def build_strategy_params_with_meta(
     rl_context: str,
 ) -> tuple[StrategyParameters, Optional[Dict[str, float]], str]:
     overrides, source = _resolve_strategy_overrides(cfg, symbol, interval, use_best, rl_context=rl_context)
-    params = build_parameters(cfg, overrides)
+    params = build_parameters(cfg, symbol=symbol, overrides=overrides)
     overrides_copy = dict(overrides) if overrides else None
     return params, overrides_copy, source
 
@@ -705,7 +705,7 @@ def cmd_dry_run_portfolio(cfg: BotConfig, args: argparse.Namespace) -> None:
                 continue
             raw_params = entry.get("params")
             params = (
-                build_parameters(cfg, raw_params)
+                build_parameters(cfg, symbol=symbol, overrides=raw_params)
                 if raw_params
                 else _build_strategy_params(cfg, symbol, timeframe, use_best, rl_context="dry_run_portfolio")
             )

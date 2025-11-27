@@ -73,7 +73,7 @@ def _run_task(task: Task) -> Dict[str, Any]:
     except FileNotFoundError:
         return {"symbol": symbol, "timeframe": timeframe, "error": "missing_data"}
     normalized = _normalize(params, cfg)
-    strategy_params = build_parameters(cfg, normalized)
+    strategy_params = build_parameters(cfg, symbol=symbol, overrides=normalized)
     outcome = backtester.run(symbol, timeframe, candles, strategy_params)
     return {"symbol": symbol, "timeframe": timeframe, "params": normalized, "metrics": outcome["metrics"]}
 

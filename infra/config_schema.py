@@ -56,6 +56,13 @@ class StrategyBaseConfig(BaseModel):
     no_trade_sessions: List[SessionWindow] = Field(default_factory=list)
 
 
+class StrategyFilters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    min_atr_pct: float = Field(0.03, ge=0.0)
+    max_atr_pct: float = Field(2.5, ge=0.0)
+
+
 class PathsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -141,6 +148,11 @@ class StrategyConfig(BaseModel):
             "atr_target": 2.2,
             "cooldown_bars": 2.0,
             "hold_bars": 90.0,
+            "min_volatility_pct": 0.15,
+            "max_spread_pct": 0.06,
+            "trend_confirm_bars": 55.0,
+            "min_reentry_bars_same_dir": 15.0,
+            "min_reentry_bars_flip": 5.0,
         }
     )
     demo_live_overrides: Dict[str, float] = Field(
@@ -153,16 +165,25 @@ class StrategyConfig(BaseModel):
             "hold_bars": 45.0,
         }
     )
+    filters: StrategyFilters = Field(default_factory=StrategyFilters)
     parameter_space: Dict[str, List[float]] = Field(
         default_factory=lambda: {
-            "fast_ema": [8.0, 13.0, 21.0],
-            "slow_ema": [34.0, 55.0, 89.0],
-            "rsi_overbought": [58.0, 60.0, 65.0],
-            "rsi_oversold": [35.0, 40.0, 45.0],
-            "atr_stop": [1.4, 1.6, 1.9],
-            "atr_target": [1.8, 2.2, 2.8],
+            "fast_ema": [5.0, 8.0, 13.0, 21.0],
+            "slow_ema": [34.0, 55.0, 89.0, 144.0],
+            "rsi_overbought": [52.0, 55.0, 58.0, 62.0],
+            "rsi_oversold": [38.0, 42.0, 45.0, 48.0],
+            "atr_stop": [1.2, 1.4, 1.6, 1.9],
+            "atr_target": [2.0, 2.4, 2.8, 3.2],
+            "cooldown_bars": [0.0, 1.0, 2.0, 4.0],
+            "hold_bars": [30.0, 45.0, 60.0, 90.0],
+            "trend_confirm_bars": [0.0, 21.0, 34.0, 55.0],
+            "min_volatility_pct": [0.05, 0.1, 0.15, 0.2],
+            "max_spread_pct": [0.03, 0.05, 0.07, 0.1],
+            "min_reentry_bars_same_dir": [8.0, 12.0, 16.0, 20.0],
+            "min_reentry_bars_flip": [2.0, 4.0, 6.0],
         }
     )
+    symbol_overrides: Dict[str, Dict[str, float | int]] = Field(default_factory=dict)
 
 
 class OptimizerConfig(BaseModel):
