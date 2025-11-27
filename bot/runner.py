@@ -3,16 +3,18 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 
 import uvicorn
-
-from dataclasses import asdict
 
 from bot import data
 from bot.backtester import Backtester
 from bot.backtest_core_bridge import run_core_backtest
 from bot.core.config import BotConfig, ensure_directories, load_config
+from bot.core.secrets import get_binance_api_key, get_binance_api_secret
 from bot.exchange_info import ExchangeInfoManager
 from bot.execution.client_factory import build_data_client, build_trading_client
 from bot.learning import TradeLearningStore
@@ -31,6 +33,12 @@ from bot.rl.types import compute_baseline_hash
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
 from bot.utils.logger import get_logger
+from core.health import run_pre_trade_checks
+from core.models import RiskConfig as CoreRiskConfig
+from core.risk import RiskManager
+from exchange.binance_client import BinanceClient
+from exchange.symbols import SymbolResolver
+from infra.state_store import StateStore
 import infra.logging as logging_utils
 
 logger = get_logger(__name__)
@@ -41,6 +49,160 @@ CommandHandler = Callable[[BotConfig, argparse.Namespace], None]
 
 _RL_STORE: RLPolicyStore | None = None
 _RL_STORE_KEY: Optional[str] = None
+
+
+@dataclass(slots=True)
+class RuntimeContext:
+    run_id: str
+    state_store: StateStore
+    symbol_resolver: SymbolResolver
+    health_summary: Dict[str, Any]
+    exchange_client: BinanceClient
+    risk_manager: RiskManager
+
+
+_RUNTIME_CONTEXT: RuntimeContext | None = None
+
+def _enforce_run_mode(cfg: BotConfig) -> None:
+    run_mode = cfg.run_mode
+    use_testnet = cfg.exchange.use_testnet
+    logging_utils.log_event(
+        "runtime_mode_resolved",
+        run_mode=run_mode,
+        use_testnet=use_testnet,
+        rest_base=cfg.exchange.rest_base_url,
+        ws_market=cfg.exchange.ws_market_url,
+        source="cli",
+    )
+    if run_mode == "demo-live" and not use_testnet:
+        logging_utils.log_event(
+            "runtime_mode_blocked",
+            run_mode=run_mode,
+            reason="demo_requires_testnet",
+            rest_base=cfg.exchange.rest_base_url,
+        )
+        logger.critical("demo-live mode requires exchange.use_testnet=True")
+        raise SystemExit(2)
+    if run_mode == "live":
+        env_flag = (os.getenv("BOT_LIVE_ENABLE") or "").strip().lower()
+        if env_flag not in {"1", "true", "yes", "on"}:
+            logging_utils.log_event("runtime_mode_blocked", run_mode="live", reason="env_guard")
+            logger.critical("BOT_LIVE_ENABLE=1 required to start live trading")
+            raise SystemExit(3)
+        if use_testnet:
+            logging_utils.log_event("runtime_mode_blocked", run_mode="live", reason="testnet_not_allowed")
+            logger.critical("Live mode must point at mainnet endpoints")
+            raise SystemExit(4)
+
+
+def _resolve_run_id() -> str:
+    env_id = os.getenv("BOT_RUN_ID")
+    if env_id:
+        return env_id.strip()
+    return datetime.utcnow().strftime("run-%Y%m%d-%H%M%S")
+
+
+def _build_state_store(cfg: BotConfig, run_id: str) -> StateStore:
+    state_dir = cfg.paths.data_dir / "state"
+    return StateStore(run_id, base_dir=state_dir)
+
+
+def _build_binance_client(cfg: BotConfig) -> BinanceClient:
+    prefer_testnet = cfg.exchange.use_testnet
+    api_key = get_binance_api_key(prefer_testnet=prefer_testnet, required=False)
+    api_secret = get_binance_api_secret(prefer_testnet=prefer_testnet, required=False)
+    base_url = (cfg.exchange.rest_base_url or "").strip() or None
+    return BinanceClient(
+        api_key=api_key or "",
+        api_secret=api_secret or "",
+        base_url=base_url,
+        testnet=prefer_testnet,
+    )
+
+
+def _build_core_risk_config(cfg: BotConfig) -> CoreRiskConfig:
+    slippage = cfg.backtest.slippage_bps / 10_000
+    return CoreRiskConfig(
+        max_risk_per_trade_pct=float(cfg.risk.per_trade_risk or 0.0),
+        max_daily_drawdown_pct=float(cfg.risk.max_daily_loss_pct or 0.0),
+        max_open_positions=int(cfg.risk.max_concurrent_symbols or 1),
+        max_leverage=int(max(1, round(cfg.risk.leverage))),
+        taker_fee_rate=float(cfg.risk.taker_fee or 0.0),
+        maker_fee_rate=float(cfg.risk.maker_fee or 0.0),
+        slippage=float(slippage),
+        max_symbol_notional_usd=float(cfg.risk.max_notional_per_symbol or 0.0),
+        max_total_notional_usd=float(cfg.risk.max_notional_global or 0.0),
+        min_order_notional_usd=float(cfg.sizing.min_notional or 10.0),
+        max_trades_per_day=int(cfg.risk.max_trades_per_day or 0),
+        max_commission_pct_per_day=float(cfg.risk.max_commission_pct_per_day or 0.0),
+        max_consecutive_losses=int(cfg.risk.max_consecutive_losses or 0),
+    )
+
+
+def _should_bootstrap_runtime(cfg: BotConfig) -> bool:
+    return cfg.run_mode in {"dry-run", "demo-live", "live"}
+
+
+def _maybe_bootstrap_runtime(cfg: BotConfig) -> RuntimeContext | None:
+    global _RUNTIME_CONTEXT
+    if not _should_bootstrap_runtime(cfg):
+        return None
+    if _RUNTIME_CONTEXT is not None:
+        return _RUNTIME_CONTEXT
+
+    run_id = _resolve_run_id()
+    state_store = _build_state_store(cfg, run_id)
+    exchange_client = _build_binance_client(cfg)
+    symbol_resolver = SymbolResolver(exchange_client, symbols=cfg.symbols)
+    account_provider: BinanceClient | None = None
+    if cfg.run_mode in {"demo-live", "live"} and not cfg.runtime.dry_run:
+        account_provider = exchange_client
+
+    health_ok, health_meta = run_pre_trade_checks(
+        cfg,
+        exchange_client,
+        symbol_resolver,
+        run_id=run_id,
+        account_provider=account_provider,
+    )
+    if not health_ok:
+        logging_utils.log_event(
+            "runtime_mode_blocked",
+            run_mode=cfg.run_mode,
+            reason="health_check_failed",
+            checks=list(health_meta.values()),
+            run_id=run_id,
+        )
+        raise SystemExit("Pre-trade health checks failed; see logs for details.")
+
+    risk_config = _build_core_risk_config(cfg)
+    risk_manager = RiskManager(
+        risk_config,
+        symbol_resolver=symbol_resolver,
+        state_store=state_store,
+        run_id=run_id,
+    )
+
+    _RUNTIME_CONTEXT = RuntimeContext(
+        run_id=run_id,
+        state_store=state_store,
+        symbol_resolver=symbol_resolver,
+        health_summary=health_meta,
+        exchange_client=exchange_client,
+        risk_manager=risk_manager,
+    )
+    logging_utils.bind_log_context(run_id=run_id)
+    logging_utils.log_event(
+        "runtime_bootstrap_complete",
+        run_mode=cfg.run_mode,
+        run_id=run_id,
+        checks=list(health_meta.values()),
+    )
+    return _RUNTIME_CONTEXT
+
+
+def get_runtime_context() -> RuntimeContext | None:
+    return _RUNTIME_CONTEXT
 
 
 def _resolve_rl_store(cfg: BotConfig) -> RLPolicyStore | None:
@@ -764,7 +926,9 @@ def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     cfg = load_config()
+    _enforce_run_mode(cfg)
     ensure_directories(cfg.paths)
+    runtime_ctx = _maybe_bootstrap_runtime(cfg)
     status_store.configure(log_dir=cfg.paths.log_dir, default_balance=cfg.runtime.paper_account_balance)
     status_store.set_runtime_context(
         run_mode=cfg.run_mode,
@@ -779,6 +943,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         rest_base_url=cfg.exchange.rest_base_url,
         ws_market_url=cfg.exchange.ws_market_url,
         ws_user_url=cfg.exchange.ws_user_url,
+        run_id=runtime_ctx.run_id if runtime_ctx else None,
     )
     parser = build_parser(cfg)
     args = parser.parse_args(argv)

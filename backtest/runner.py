@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import json
 import asyncio
+import json
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional
 
 from backtest.metrics import average_r, average_win_loss, exposure, max_drawdown, sharpe_ratio, win_rate
 from core.models import Candle, MarketState, OrderRequest, OrderType, Position, Side, Signal
 from core.risk import RiskManager
+from core.safety import SafetyLimits, SafetyState, check_kill_switch
 from core.state import PositionManager
 from core.strategy import Strategy
-from core.safety import SafetyLimits, SafetyState, check_kill_switch
 from exchange.simulated_exchange import SimulatedExchange
-from infra.logging import logger, log_event
+from infra.logging import log_event, logger
 
 
 @dataclass(slots=True)
@@ -46,7 +46,7 @@ class BacktestRunner:
         *,
         spread: float = 0.5,
         slippage: float | None = None,
-    ):
+    ) -> None:
         self.strategy = strategy
         self.risk_manager = risk_manager
         if hasattr(self.risk_manager, "enable_backtest_mode"):
@@ -83,11 +83,11 @@ class BacktestRunner:
             take_profit=take_profit,
         )
 
-    def run(self, candles: List[Candle]):
-        equity_curve = []
-        trade_pnls = []
-        risks = []
-        open_bars = []
+    def run(self, candles: List[Candle]) -> Dict[str, List[float] | dict]:
+        equity_curve: List[float] = []
+        trade_pnls: List[float] = []
+        risks: List[float] = []
+        open_bars: List[int] = []
 
         for idx, candle in enumerate(candles):
             self.exchange.update_market(candle)
@@ -142,22 +142,34 @@ class BacktestRunner:
                     fill = asyncio.run(self.exchange.place_order(safe_order))
                     if fill:
                         entry_fee = abs(fill.avg_price * fill.filled_qty) * self.risk_manager.config.taker_fee_rate
+                        equity_before_fee = max(self.position_manager.equity, 1e-9)
                         self.position_manager.apply_fee(entry_fee)
+                        commission_pct = (entry_fee / equity_before_fee) * 100.0
+                        self.risk_manager.record_fill(0.0, commission_pct_of_equity=commission_pct, is_closed_trade=False)
                         if not before_open:
+                            self.risk_manager.record_trade_entry()
                             trade_idx = len(trade_pnls)
                             trade_pnls.append(0.0)
-                            risks.append(self.position_manager.equity * self.risk_manager.config.max_risk_per_trade_pct)
-                            fill = asyncio.run(self.exchange.place_order(safe_order))
+                            risks.append(
+                                self.position_manager.equity * self.risk_manager.config.max_risk_per_trade_pct
+                            )
+                            self.active_trades[safe_order.symbol] = trade_idx
+                        logger.info(
+                            "backtest_order_filled",
+                            extra={
+                                "symbol": order.symbol,
+                                "side": order.side.value,
+                                "price": order.price,
+                            },
+                        )
                 else:
-                                entry_fee = abs(fill.avg_price * fill.filled_qty) * self.risk_manager.config.taker_fee_rate
-                                equity_before_fee = max(self.position_manager.equity, 1e-9)
-                                self.position_manager.apply_fee(entry_fee)
-                                self.risk_manager.record_fill(
-                                    0.0,
-                                    commission_pct_of_equity=(entry_fee / equity_before_fee) * 100.0,
-                                    is_closed_trade=False,
-                                )
-                        extra={"symbol": order.symbol, "side": order.side.value, "price": order.price},
+                    logger.warning(
+                        "Order blocked by risk",
+                        extra={
+                            "symbol": order.symbol,
+                            "side": order.side.value,
+                            "price": order.price,
+                        },
                     )
 
             self._maybe_close_on_signal(signal.action, candle, idx, len(candles), trade_pnls)

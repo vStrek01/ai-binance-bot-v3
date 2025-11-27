@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from typing import Literal, Optional
 
+from infra.pydantic_guard import ensure_pydantic_v2
 from pydantic import BaseModel, ValidationError, conint
+
+ensure_pydantic_v2()
 
 
 class LlmDecision(BaseModel):

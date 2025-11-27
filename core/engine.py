@@ -95,8 +95,23 @@ class TradingEngine:
                 continue
             safe_order = self.risk_manager.validate(order_req, state)
             if safe_order:
+                before_open = any(
+                    pos.symbol == safe_order.symbol and pos.is_open()
+                    for pos in self.position_manager.get_open_positions()
+                )
                 fill = await self._execute_order(safe_order)
                 if fill:
+                    entry_fee = abs(fill.avg_price * fill.filled_qty) * self.risk_manager.config.taker_fee_rate
+                    equity_before_fee = max(self.position_manager.equity, 1e-9)
+                    self.position_manager.apply_fee(entry_fee)
+                    commission_pct = (entry_fee / equity_before_fee) * 100.0
+                    self.risk_manager.record_fill(
+                        0.0,
+                        commission_pct_of_equity=commission_pct,
+                        is_closed_trade=False,
+                    )
+                    if not before_open:
+                        self.risk_manager.record_trade_entry()
                     self.position_manager.update_on_fill(
                         fill,
                         side=safe_order.side,

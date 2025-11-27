@@ -12,6 +12,29 @@ from typing import Any, Dict, List, Optional
 _LOGGER_NAME = os.getenv("LOG_NAME", "ai_binance_bot")
 logger = logging.getLogger(_LOGGER_NAME)
 
+# Central catalogue of structured observability events. Used to stamp
+# a stable category field onto every JSON log for downstream pipelines.
+EVENT_CATEGORY_MAP: Dict[str, str] = {
+    "health_check_passed": "health",
+    "health_check_failed": "health",
+    "state_saved": "state",
+    "state_loaded": "state",
+    "risk_state_updated": "risk",
+    "runtime_mode_resolved": "runtime",
+    "runtime_mode_blocked": "runtime",
+    "runtime_bootstrap_complete": "runtime",
+    "exchange_filters_applied": "exchange",
+    "EQUITY_SNAPSHOT": "telemetry",
+    "POSITION_OPENED": "telemetry",
+    "POSITION_CLOSED": "telemetry",
+    "ORDER_PLACED": "execution",
+    "ORDER_FILLED": "execution",
+    "ORDER_FAILED": "execution",
+    "KILL_SWITCH_TRIGGERED": "risk",
+    "risk_kill_switch_triggered": "risk",
+    "order_rejected_by_risk": "risk",
+}
+
 _context: Dict[str, Any] = {}
 _configured = False
 _state_file: Optional[Path] = None
@@ -60,6 +83,9 @@ def log_event(event: str, **fields: Any) -> None:
 
     payload: Dict[str, Any] = {**_context, **fields}
     payload["event"] = event
+    category = EVENT_CATEGORY_MAP.get(event)
+    if category:
+        payload.setdefault("category", category)
     payload.setdefault("timestamp", datetime.utcnow().isoformat())
     logger.info(json.dumps(payload, default=str))
     _update_state(payload)

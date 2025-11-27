@@ -352,6 +352,9 @@ class LiveTrader(MultiSymbolRunnerBase):
         rsi_oversold = _clamp("rsi_oversold", _fval("rsi_oversold", current.rsi_oversold))
         atr_stop = _clamp("atr_stop", _fval("atr_stop", current.atr_stop))
         atr_target = _clamp("atr_target", _fval("atr_target", current.atr_target))
+        min_volatility_pct = _fval("min_volatility_pct", current.min_volatility_pct)
+        max_spread_pct = _fval("max_spread_pct", current.max_spread_pct)
+        trend_confirm_bars = _ival("trend_confirm_bars", current.trend_confirm_bars)
 
         return StrategyParameters(
             fast_ema=fast_ema,
@@ -364,6 +367,9 @@ class LiveTrader(MultiSymbolRunnerBase):
             atr_target=atr_target,
             cooldown_bars=cooldown_bars,
             hold_bars=hold_bars,
+            min_volatility_pct=min_volatility_pct,
+            max_spread_pct=max_spread_pct,
+            trend_confirm_bars=trend_confirm_bars,
         )
 
     @staticmethod

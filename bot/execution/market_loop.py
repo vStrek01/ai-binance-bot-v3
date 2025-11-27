@@ -217,17 +217,11 @@ class MarketLoop:
     def _log_decision(self, position: PaperPosition, signal: StrategySignal, volatility: Dict[str, float]) -> None:
         if not self._telemetry_enabled():
             return
+        decision = signal.to_decision(symbol=self._ctx.symbol, interval=self._ctx.timeframe)
         payload = {
             "run_mode": self._ctx.run_mode,
-            "symbol": self._ctx.symbol,
-            "interval": self._ctx.timeframe,
-            "action": "LONG" if signal.direction == 1 else "SHORT",
+            **decision,
             "size": position.quantity,
-            "entry_price": position.entry_price,
-            "stop_loss": position.stop_loss,
-            "take_profit": position.take_profit,
-            "reason": signal.reason or "baseline_signal",
-            "indicators": signal.indicators,
             "volatility": volatility,
         }
         log_event("STRATEGY_DECISION", **payload)

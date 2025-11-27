@@ -5,7 +5,10 @@ from datetime import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
+from infra.pydantic_guard import ensure_pydantic_v2
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+
+ensure_pydantic_v2()
 
 RunMode = Literal["backtest", "dry-run", "demo-live", "live"]
 

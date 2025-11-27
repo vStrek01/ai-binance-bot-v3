@@ -85,3 +85,21 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
     assert not streak_block.allowed
     assert streak_block.reason == "loss_streak"
     assert streak_engine.current_state().trading_mode == TradingMode.HALTED_LOSS_STREAK
+
+
+def test_daily_drawdown_triggers_kill_switch():
+    config = RiskConfig(max_daily_drawdown_pct=0.01, max_risk_per_trade_pct=0.01)
+    risk = RiskManager(config)
+    risk.reset_day_if_needed(10_000.0)
+    risk.record_fill(-200.0)
+    assert risk.kill_switch_active is True
+
+
+def test_consecutive_losses_trigger_kill_switch():
+    config = RiskConfig(max_consecutive_losses=2, max_daily_drawdown_pct=0.5)
+    risk = RiskManager(config)
+    risk.reset_day_if_needed(10_000.0)
+    risk.record_fill(-10.0)
+    assert risk.kill_switch_active is False
+    risk.record_fill(-20.0)
+    assert risk.kill_switch_active is True

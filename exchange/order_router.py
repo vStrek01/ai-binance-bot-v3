@@ -27,6 +27,12 @@ class OrderRouter:
         qty = order.quantity
         stop_loss = order.stop_loss
         take_profit = order.take_profit
+        raw_snapshot = {
+            "price_before": price,
+            "qty_before": qty,
+            "stop_loss_before": stop_loss,
+            "take_profit_before": take_profit,
+        }
         if info:
             if price is not None:
                 price = info.round_price(price)
@@ -35,6 +41,19 @@ class OrderRouter:
                 stop_loss = info.round_price(stop_loss)
             if take_profit is not None:
                 take_profit = info.round_price(take_profit)
+            log_event(
+                "exchange_filters_applied",
+                symbol=order.symbol,
+                tick_size=float(info.tick_size),
+                step_size=float(info.step_size),
+                min_qty=float(info.min_qty),
+                min_notional=float(info.min_notional),
+                price_after=price,
+                qty_after=qty,
+                stop_loss_after=stop_loss,
+                take_profit_after=take_profit,
+                **raw_snapshot,
+            )
         if qty <= 0:
             raise ValueError("Normalized quantity must be positive")
         if info and price is not None and not info.validate_notional(price, qty):

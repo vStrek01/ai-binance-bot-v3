@@ -5,10 +5,13 @@ from typing import Any, Dict
 
 import yaml
 from dotenv import load_dotenv
+from infra.pydantic_guard import ensure_pydantic_v2
 from pydantic import ValidationError
 
 from infra.config_schema import AppConfig, PathsConfig, RunMode
-from infra.logging import logger
+from infra.logging import logger, log_event
+
+ensure_pydantic_v2()
 
 DEMO_REST_BASE_URL = "https://demo-fapi.binance.com"
 DEMO_WS_MARKET_URL = "wss://fstream.binancefuture.com"
@@ -29,15 +32,16 @@ def _log_config_snapshot(config: AppConfig, *, source: Dict[str, bool]) -> None:
             sanitized_exchange[key] = "***redacted***"
     payload = config.model_dump()
     payload["exchange"] = sanitized_exchange
-    logger.info(
-        "resolved_run_mode",
-        extra={
-            "run_mode": config.run_mode,
-            "use_testnet": config.use_testnet,
-            "source": source,
-        },
+    log_event(
+        "runtime_mode_resolved",
+        run_mode=config.run_mode,
+        use_testnet=config.exchange.use_testnet,
+        rest_base=config.exchange.rest_base_url,
+        ws_market=config.exchange.ws_market_url,
+        ws_user=config.exchange.ws_user_url,
+        source=source,
     )
-    logger.info("app_config_loaded", extra={"config_json": json.dumps(payload, default=str)})
+    log_event("app_config_loaded", config=payload)
 
 
 def load_config(

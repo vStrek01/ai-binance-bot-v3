@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 
 from core.models import OrderFill, Position, Side
 from infra.logging import logger, log_event
+from infra.state_store import StateStore
 
 MAX_POSITION_PCT = 0.2
 
@@ -17,6 +18,8 @@ class PositionManager:
     fees_paid: float = 0.0
     consecutive_losses: int = 0
     run_mode: str = "backtest"
+    state_store: StateStore | None = field(default=None, repr=False)
+    run_id: str | None = None
 
     def get_open_positions(self) -> List[Position]:
         return [p for p in self.positions.values() if p.is_open()]
@@ -57,6 +60,7 @@ class PositionManager:
                 run_mode=self.run_mode,
                 position=pos.model_dump(),
             )
+            self._persist_state()
         else:
             if pos.has_added_once:
                 logger.warning("Add-on blocked: already added once", extra={"symbol": symbol})
@@ -75,6 +79,7 @@ class PositionManager:
             pos.quantity = total_qty
             pos.has_added_once = True
             logger.info("Added to position", extra={"position": pos.model_dump()})
+            self._persist_state()
 
     def close_position(self, symbol: str, exit_price: float) -> Optional[float]:
         pos = self.positions.get(symbol)
@@ -106,11 +111,30 @@ class PositionManager:
             run_mode=self.run_mode,
             position=pos.model_dump(),
         )
+        self._persist_state()
         return pnl
 
     def apply_fee(self, amount: float):
         self.equity -= amount
         self.fees_paid += amount
+        self._persist_state()
+
+    def _persist_state(self) -> None:
+        if not self.state_store:
+            return
+        try:
+            positions_payload = {symbol: pos.model_dump() for symbol, pos in self.positions.items()}
+            portfolio_payload = {
+                "equity": self.equity,
+                "fees_paid": self.fees_paid,
+                "consecutive_losses": self.consecutive_losses,
+                "run_mode": self.run_mode,
+                "updated_at": datetime.utcnow().isoformat(),
+                "run_id": self.run_id,
+            }
+            self.state_store.merge(positions=positions_payload, portfolio=portfolio_payload)
+        except Exception as exc:  # noqa: BLE001 - persistence failures must be non-fatal
+            logger.warning("Failed to persist position state", extra={"error": str(exc)})
 
 
 @dataclass

@@ -114,3 +114,33 @@ class BinanceClient:
         """Alias used by SymbolResolver for clarity."""
 
         return self.exchange_info()
+
+    def ping(self) -> None:
+        """Ensure the exchange is reachable."""
+
+        self._request("GET", "/fapi/v1/ping")
+
+    def server_time_ms(self) -> int:
+        """Return the exchange server time in milliseconds."""
+
+        payload = self._request("GET", "/fapi/v1/time")
+        return int(payload.get("serverTime", 0))
+
+    # --- Account helpers -------------------------------------------------
+
+    def account_overview(self) -> Dict[str, Any]:
+        """Return the futures account payload for balance/permission checks."""
+
+        payload = self._request("GET", "/fapi/v2/account", signed=True)
+        if not isinstance(payload, dict):
+            raise RuntimeError("Unexpected account response")
+        return payload
+
+    def account_balances(self) -> list[Dict[str, Any]]:
+        """Return the raw asset balances from the futures account payload."""
+
+        account = self.account_overview()
+        assets = account.get("assets")
+        if isinstance(assets, list):
+            return [asset for asset in assets if isinstance(asset, dict)]
+        return []

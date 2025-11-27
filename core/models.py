@@ -4,7 +4,10 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
+from infra.pydantic_guard import ensure_pydantic_v2
 from pydantic import BaseModel, Field, field_validator
+
+ensure_pydantic_v2()
 
 
 class Side(str, Enum):
