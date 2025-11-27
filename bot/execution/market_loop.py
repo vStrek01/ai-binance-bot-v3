@@ -14,6 +14,7 @@ from bot.risk import ExternalSignalGate, MultiTimeframeFilter, PositionSizer, vo
 from bot.risk.engine import ExposureState
 from bot.risk.sizing import SizingContext
 from bot.signals.strategies import StrategySignal
+from infra.logging import log_event
 
 
 @dataclass(slots=True)
@@ -75,25 +76,31 @@ class MarketLoop:
         price = float(latest_row["close"])
         volatility = volatility_snapshot(frame, self._cfg)
         if self._cfg.risk.require_sl_tp and (signal.stop_loss is None or signal.take_profit is None):
+            self._log_veto("risk_precheck", "missing_sl_tp")
             self._log_sizing_skip(self._ctx, "missing_sl_tp")
             return None
         sizing_ctx = self._sizing_builder(self._ctx, price, volatility)
         if sizing_ctx is None:
+            self._log_veto("sizing", "context_unavailable")
             return None
         sizing_result = self._sizer.plan_trade(sizing_ctx, self._risk_gate.engine)
         if not sizing_result.accepted:
             self._log_sizing_skip(self._ctx, sizing_result.reason)
+            self._log_veto("sizing", sizing_result.reason or "rejected")
             return None
         filters = sizing_ctx.filters or self._exchange_info.get_filters(self._ctx.symbol)
         valid, reason, adjusted_qty = self._exchange_info.validate_order(self._ctx.symbol, price, sizing_result.quantity)
         if not valid or adjusted_qty <= 0:
             self._log_sizing_skip(self._ctx, reason)
+            self._log_veto("exchange_filters", reason or "invalid_order", requested_qty=sizing_result.quantity)
             return None
         mta_ok, mta_meta = self._multi_filter.evaluate(self._ctx.symbol, signal.direction)
         if not mta_ok:
+            self._log_veto("multi_timeframe", "alignment_blocked")
             return None
         signal_ok, signal_meta = self._external_gate.evaluate(self._ctx.symbol, signal.direction)
         if not signal_ok:
+            self._log_veto("external_signals", "sentiment_blocked")
             return None
         side = "BUY" if signal.direction == 1 else "SELL"
         risk_decision = self._risk_gate.assess_entry(
@@ -110,6 +117,7 @@ class MarketLoop:
         )
         if not risk_decision.allowed:
             self._log_sizing_skip(self._ctx, risk_decision.reason)
+            self._log_veto("risk_gate", risk_decision.reason or "blocked", available_balance=available_balance)
             return None
         opened_at = self._timestamp_fn(latest_row)
         position = PaperPosition(
@@ -143,6 +151,7 @@ class MarketLoop:
             filters=filters,
             tag="entry",
         )
+        self._log_decision(position, signal, volatility)
         return EntryPlan(position=position, signal=signal, order_request=order_request)
 
     def plan_exit(self, position: PaperPosition, row: pd.Series) -> Optional[ExitPlan]:
@@ -171,12 +180,70 @@ class MarketLoop:
 
     def _latest_signal(self, frame: pd.DataFrame) -> Optional[StrategySignal]:
         signals = self._ctx.strategy.generate_signals(frame)
-        if not signals:
-            return None
-        signal = signals[-1]
-        if signal.index != len(frame) - 1:
-            return None
+        snapshot = None
+        if hasattr(self._ctx.strategy, "latest_snapshot"):
+            snapshot = self._ctx.strategy.latest_snapshot()
+        signal: Optional[StrategySignal] = None
+        if signals:
+            candidate = signals[-1]
+            if candidate.index == len(frame) - 1:
+                signal = candidate
+        self._log_tick(snapshot, signal)
         return signal
+
+    def _telemetry_enabled(self) -> bool:
+        return self._ctx.run_mode in {"demo-live", "live"}
+
+    def _log_tick(self, snapshot: Optional[Dict[str, float]], signal: Optional[StrategySignal]) -> None:
+        if not self._telemetry_enabled():
+            return
+        payload: Dict[str, Optional[float | str]] = {
+            "run_mode": self._ctx.run_mode,
+            "symbol": self._ctx.symbol,
+            "interval": self._ctx.timeframe,
+            "state": "FLAT" if signal is None else ("LONG" if signal.direction == 1 else "SHORT"),
+        }
+        if snapshot:
+            payload.update(
+                {
+                    "last_close": snapshot.get("last_close"),
+                    "ema_fast": snapshot.get("ema_fast"),
+                    "ema_slow": snapshot.get("ema_slow"),
+                    "rsi": snapshot.get("rsi"),
+                }
+            )
+        log_event("STRATEGY_TICK", **payload)
+
+    def _log_decision(self, position: PaperPosition, signal: StrategySignal, volatility: Dict[str, float]) -> None:
+        if not self._telemetry_enabled():
+            return
+        payload = {
+            "run_mode": self._ctx.run_mode,
+            "symbol": self._ctx.symbol,
+            "interval": self._ctx.timeframe,
+            "action": "LONG" if signal.direction == 1 else "SHORT",
+            "size": position.quantity,
+            "entry_price": position.entry_price,
+            "stop_loss": position.stop_loss,
+            "take_profit": position.take_profit,
+            "reason": signal.reason or "baseline_signal",
+            "indicators": signal.indicators,
+            "volatility": volatility,
+        }
+        log_event("STRATEGY_DECISION", **payload)
+
+    def _log_veto(self, stage: str, reason: Optional[str], **details: object) -> None:
+        if not self._telemetry_enabled():
+            return
+        payload: Dict[str, object] = {
+            "run_mode": self._ctx.run_mode,
+            "symbol": self._ctx.symbol,
+            "interval": self._ctx.timeframe,
+            "stage": stage,
+            "reason": reason or stage,
+        }
+        payload.update(details)
+        log_event("STRATEGY_VETO", **payload)
 
 
 __all__ = ["MarketLoop", "EntryPlan", "ExitPlan"]

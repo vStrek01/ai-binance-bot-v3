@@ -214,6 +214,19 @@ Backtest results are persisted under `data/results/` with equity curves and metr
 - `frontend/dashboard.html` + `dashboard.js` now call `/api/dashboard/state`, so serving `frontend/` via `uvicorn bot.api:app --host 127.0.0.1 --port 8000` instantly shows live equity, positions, and recent trades/killswitch events.
 - `tools/tail_logs.py` is a lightweight terminal monitor: `python -m tools.tail_logs --interval 1.5` polls the same API endpoint (or `--source local` to read in-process helpers) and prints fresh equity snapshots, open-position deltas, and notable events.
 
+### CLI observability toolkit
+
+All tools below are **read only**; they parse `logs/bot.log` (override via `--log-file`). Activate your venv first (`& ./.venv/Scripts/Activate.ps1`).
+
+- **Strategy timeline** – `python -m tools.analyze_strategy_timeline --symbol BTCUSDT --lookback-minutes 240 --limit 150`
+	- Prints an ASCII table summarizing `STRATEGY_SIGNAL`, order lifecycle, risk, and equity events for the last X minutes so you can reconstruct trade decisions quickly.
+- **Live curses dashboard** – `python -m tools.live_dashboard --symbol BTCUSDT --refresh 0.5`
+	- Streams equity, recent signals/orders, and risk blocks in a terminal dashboard. Use `--replay` to read historical logs instead of tailing.
+- **Discord alerts** – `python -m tools.discord_alerts --symbol BTCUSDT --events RISK_REJECTION POSITION_LIQUIDATION`
+	- Requires `DISCORD_WEBHOOK_URL` or `--webhook-url`. Tails the log and pushes high-priority events to Discord; add `--dry-run` for local testing or `--send-test "hello"` to verify wiring.
+- **Backtest vs demo comparator** – `python -m tools.compare_backtest_to_demo data/results/BTC_backtest.csv --demo-log logs/bot.log`
+	- Reads demo equity snapshots plus a backtest CSV (columns: `timestamp,equity`) and plots both curves as ASCII spark lines with max drawdown deltas.
+
 ## Experimental & credential stubs
 
 - Anything under `experimental/` (for example `experimental.eval_llm_vs_baseline`) is unsupported and excluded from the production CLI. Run such scripts explicitly via `python -m experimental.<name>`.

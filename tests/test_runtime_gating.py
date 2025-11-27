@@ -177,6 +177,7 @@ def test_build_strategy_params_skips_rl_for_live_context_by_default(
 ) -> None:
     cfg = load_config(base_dir=tmp_path)
     cfg = _with_runtime(cfg, use_rl_policy=True)
+    cfg = cfg.model_copy(update={"run_mode": "backtest"})
 
     def _fail(*_args: Any, **_kwargs: Any) -> None:
         raise AssertionError("RL store should not be resolved for live/demo-live contexts without explicit opt-in")
@@ -246,6 +247,7 @@ def test_rl_overrides_apply_offline_contexts(
 def test_rl_overrides_rejected_when_guardrails_fail(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cfg = load_config(base_dir=tmp_path)
     cfg = _with_runtime(cfg, use_rl_policy=True)
+    cfg = cfg.model_copy(update={"run_mode": "backtest"})
     safe_deviation = max(min(0.05, cfg.rl.max_param_deviation_from_baseline - 1e-3), 5e-4)
     payload = _build_policy_payload(
         cfg,

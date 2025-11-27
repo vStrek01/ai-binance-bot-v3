@@ -89,6 +89,16 @@ class StrategyConfig(BaseModel):
             "hold_bars": 90.0,
         }
     )
+    demo_live_overrides: Dict[str, float] = Field(
+        default_factory=lambda: {
+            "fast_ema": 8.0,
+            "slow_ema": 21.0,
+            "rsi_overbought": 55.0,
+            "rsi_oversold": 45.0,
+            "cooldown_bars": 1.0,
+            "hold_bars": 45.0,
+        }
+    )
     parameter_space: Dict[str, List[float]] = Field(
         default_factory=lambda: {
             "fast_ema": [8.0, 13.0, 21.0],

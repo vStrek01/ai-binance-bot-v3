@@ -102,12 +102,18 @@ class MarketContext:
     symbol: str
     timeframe: str
     params: StrategyParameters
+    run_mode: str = "backtest"
     strategy: EmaRsiAtrStrategy = field(init=False)
     position: Optional[PaperPosition] = None
     filters: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.strategy = EmaRsiAtrStrategy(self.params)
+        self.strategy = EmaRsiAtrStrategy(
+            self.params,
+            symbol=self.symbol,
+            interval=self.timeframe,
+            run_mode=self.run_mode,
+        )
 
 
 class MultiSymbolRunnerBase:
@@ -130,7 +136,8 @@ class MultiSymbolRunnerBase:
             raise ValueError("Multi-symbol runner requires at least one market")
         self._config = cfg
         self.contexts: List[MarketContext] = [
-            MarketContext(symbol=symbol, timeframe=timeframe, params=params) for symbol, timeframe, params in markets
+            MarketContext(symbol=symbol, timeframe=timeframe, params=params, run_mode=cfg.run_mode)
+            for symbol, timeframe, params in markets
         ]
         self.exchange_info = exchange_info
         self.mode_label = mode_label
