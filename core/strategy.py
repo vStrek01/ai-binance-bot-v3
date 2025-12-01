@@ -8,10 +8,11 @@ import pandas as pd
 
 from core.llm_adapter import LLMAdapter
 from core.models import Candle, LLMSignal, MarketState, Signal, Side
-from infra.logging import logger
+from infra.logging import logger, log_event
 
 if TYPE_CHECKING:
     from strategies.baseline_rsi_trend import BaselineRSITrend, BaselineDecision
+    from strategies.ema_stoch_scalping import EMAStochasticStrategy, ScalpingDecision
 
 
 @dataclass
@@ -38,8 +39,9 @@ class Strategy:
         indicator_config: IndicatorConfig,
         llm_adapter: Optional[LLMAdapter] = None,
         optimized_params: Optional[Dict[str, Any]] = None,
-        strategy_mode: Literal["llm", "baseline"] = "llm",
+        strategy_mode: Literal["llm", "baseline", "scalping"] = "llm",
         baseline_strategy: Optional["BaselineRSITrend"] = None,
+        scalping_strategy: Optional["EMAStochasticStrategy"] = None,
     ):
         self._base_config = indicator_config
         self.llm_adapter = llm_adapter
@@ -47,6 +49,7 @@ class Strategy:
         self.config = self._merge_config(self._base_config, self.optimized_params)
         self.strategy_mode = strategy_mode
         self.baseline_strategy = baseline_strategy
+        self.scalping_strategy = scalping_strategy
 
     def _merge_config(self, config: IndicatorConfig, overrides: Dict[str, Any]) -> IndicatorConfig:
         if not overrides:
@@ -96,6 +99,8 @@ class Strategy:
     def evaluate(self, market_state: MarketState) -> Signal:
         if self.strategy_mode == "baseline" and self.baseline_strategy:
             return self._run_baseline(market_state)
+        if self.strategy_mode == "scalping" and self.scalping_strategy:
+            return self._run_scalping(market_state)
 
         indicator_signal = self._compute_ma_signal(market_state.candles)
         llm_signal = None
@@ -117,14 +122,93 @@ class Strategy:
         decision = self.baseline_strategy.evaluate(market_state.candles) if self.baseline_strategy else None
         if decision is None:
             return Signal(action=Side.FLAT, confidence=0.0, reason="baseline_unavailable")
+        return self._decision_to_signal(decision, default_reason="baseline_decision")
 
-        action = Side(decision.action)
+    def _run_scalping(self, market_state: MarketState) -> Signal:
+        position_side = self._resolve_position_state(market_state)
+        decision = (
+            self.scalping_strategy.evaluate(market_state.candles, position_side=position_side)
+            if self.scalping_strategy
+            else None
+        )
+        if decision is None:
+            return Signal(action=Side.FLAT, confidence=0.0, reason="scalping_unavailable")
+        signal = self._decision_to_signal(decision, default_reason="ema_stoch_decision")
+        self._log_scalping_snapshot(market_state, decision)
+        return signal
+
+    def _decision_to_signal(self, decision: "BaselineDecision" | "ScalpingDecision", *, default_reason: str) -> Signal:
+        reason = getattr(decision, "reason", None) or default_reason
+        action_name = getattr(decision, "action", "FLAT") or "FLAT"
+        action_name = action_name.upper()
+        if action_name in {"CLOSE_LONG", "CLOSE_SHORT"}:
+            action = Side.FLAT
+        elif action_name == "HOLD":
+            action = Side.FLAT
+        else:
+            try:
+                action = Side(action_name)
+            except ValueError:
+                action = Side.FLAT
         confidence = 1.0 if action != Side.FLAT else 0.0
+        size_usd = decision.size_usd if action != Side.FLAT else 0.0
         return Signal(
             action=action,
             confidence=confidence,
-            reason="baseline_decision",
+            reason=reason,
             stop_loss_pct=decision.sl_pct,
             take_profit_pct=decision.tp_pct,
-            size_usd=decision.size_usd,
+            size_usd=size_usd,
         )
+
+    def _log_scalping_snapshot(self, market_state: MarketState, decision: "ScalpingDecision") -> None:
+        if not self.scalping_strategy or not market_state.candles:
+            return
+        snapshot = self.scalping_strategy.latest_snapshot or {}
+        last_close_time = market_state.candles[-1].close_time if market_state.candles else None
+        payload = {
+            "symbol": market_state.symbol,
+            "close_time": last_close_time.isoformat() if last_close_time else None,
+            "last_close": snapshot.get("price"),
+            "action": decision.action,
+            "reason": decision.reason or "ema_stoch_decision",
+            "ema_fast": snapshot.get("ema_fast"),
+            "ema_slow": snapshot.get("ema_slow"),
+            "stoch_k": snapshot.get("stoch_k"),
+            "stoch_k_prev": snapshot.get("stoch_k_prev"),
+            "stoch_d": snapshot.get("stoch_d"),
+            "stoch_d_prev": snapshot.get("stoch_d_prev"),
+            "position_state": snapshot.get("position_state")
+            or getattr(decision, "position_state", None),
+            "params_preset": snapshot.get("params_preset"),
+            "last_trade_bar": snapshot.get("last_trade_bar"),
+            "trend_filter_active": snapshot.get("trend_filter_active"),
+            "throttle_reason": snapshot.get("throttle_reason"),
+            "size_usd": decision.size_usd,
+            "sl_pct": decision.sl_pct,
+            "tp_pct": decision.tp_pct,
+        }
+        log_event("SCALPING_SIGNAL", **payload)
+
+    def _resolve_position_state(self, market_state: MarketState) -> Side:
+        candidate = market_state.position
+        if (
+            candidate
+            and getattr(candidate, "symbol", None) == market_state.symbol
+            and getattr(candidate, "is_open", lambda: False)()
+        ):
+            return getattr(candidate, "side", Side.FLAT)
+        for pos in market_state.open_positions or []:
+            if getattr(pos, "symbol", None) != market_state.symbol:
+                continue
+            if hasattr(pos, "is_open") and not pos.is_open():
+                continue
+            side = getattr(pos, "side", None)
+            if isinstance(side, Side):
+                return side
+            if isinstance(side, str):
+                try:
+                    return Side(side)
+                except ValueError:
+                    continue
+        return Side.FLAT

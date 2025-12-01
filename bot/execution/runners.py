@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import math
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -24,10 +24,96 @@ from bot.risk import (
 )
 from bot.signals import indicators
 from bot.signals.strategies import EmaRsiAtrStrategy, StrategyParameters, StrategySignal
+from bot.strategy_mode import SCALPING_MODE, build_scalping_config, resolve_strategy_mode
 from bot.status import status_store
 from bot.utils.logger import get_logger
+from core.models import Candle
+from strategies.ema_stoch_scalping import EMAStochasticStrategy, ScalpingConfig
 
 logger = get_logger(__name__)
+
+class ScalpingStrategyAdapter:
+    def __init__(self, config: ScalpingConfig, symbol: str, interval: str, run_mode: str) -> None:
+        self._strategy = EMAStochasticStrategy(config)
+        self.symbol = symbol
+        self.interval = interval
+        self.run_mode = run_mode
+
+    def generate_signals(self, frame: pd.DataFrame) -> List[StrategySignal]:
+        candles = self._frame_to_candles(frame)
+        if not candles:
+            return []
+        decision = self._strategy.evaluate(candles)
+        snapshot = self._strategy.latest_snapshot or {}
+        indicators = dict(decision.indicators)
+        indicators.update(
+            {
+                "size_usd": decision.size_usd,
+                "sl_pct": decision.sl_pct,
+                "tp_pct": decision.tp_pct,
+                "stoch_k_prev": snapshot.get("stoch_k_prev"),
+            }
+        )
+        if decision.action not in {"LONG", "SHORT"}:
+            return []
+        price = float(candles[-1].close)
+        direction = 1 if decision.action == "LONG" else -1
+        stop_loss, take_profit = self._compute_levels(price, decision.sl_pct, decision.tp_pct, direction)
+        return [
+            StrategySignal(
+                index=len(frame) - 1,
+                direction=direction,
+                entry_price=price,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+                indicators=indicators,
+                reason=decision.reason or "ema_stoch_decision",
+            )
+        ]
+
+    def latest_snapshot(self) -> Optional[Dict[str, float | None]]:
+        return self._strategy.latest_snapshot
+
+    @staticmethod
+    def _compute_levels(price: float, sl_pct: float, tp_pct: float, direction: int) -> Tuple[float, float]:
+        if direction == 1:
+            return price * (1 - sl_pct), price * (1 + tp_pct)
+        return price * (1 + sl_pct), price * (1 - tp_pct)
+
+    def _frame_to_candles(self, frame: pd.DataFrame) -> List[Candle]:
+        candles: List[Candle] = []
+        for row in frame.itertuples(index=False):
+            open_time = self._to_datetime(getattr(row, "open_time", None))
+            close_time = self._to_datetime(getattr(row, "close_time", None)) or open_time
+            if open_time is None:
+                continue
+            candles.append(
+                Candle(
+                    symbol=self.symbol,
+                    open_time=open_time,
+                    close_time=close_time or open_time,
+                    open=float(getattr(row, "open", 0.0) or 0.0),
+                    high=float(getattr(row, "high", 0.0) or 0.0),
+                    low=float(getattr(row, "low", 0.0) or 0.0),
+                    close=float(getattr(row, "close", 0.0) or 0.0),
+                    volume=float(getattr(row, "volume", 0.0) or 0.0),
+                )
+            )
+        return candles
+
+    @staticmethod
+    def _to_datetime(value: Any) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            timestamp = pd.to_datetime(value)
+        except Exception:  # noqa: BLE001
+            return None
+        if pd.isna(timestamp):
+            return None
+        return timestamp.to_pydatetime()
 
 
 @dataclass(slots=True)
@@ -103,17 +189,10 @@ class MarketContext:
     timeframe: str
     params: StrategyParameters
     run_mode: str = "backtest"
-    strategy: EmaRsiAtrStrategy = field(init=False)
+    strategy: Optional[Any] = None
     position: Optional[PaperPosition] = None
     filters: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        self.strategy = EmaRsiAtrStrategy(
-            self.params,
-            symbol=self.symbol,
-            interval=self.timeframe,
-            run_mode=self.run_mode,
-        )
+    target_notional: Optional[float] = None
 
 
 class MultiSymbolRunnerBase:
@@ -131,10 +210,13 @@ class MultiSymbolRunnerBase:
         initial_balance: Optional[float] = None,
         status_via_exchange: bool = False,
         risk_engine: Optional[RiskEngine] = None,
+        strategy_mode: Optional[str] = None,
     ) -> None:
         if not markets:
             raise ValueError("Multi-symbol runner requires at least one market")
         self._config = cfg
+        self._strategy_mode = strategy_mode or resolve_strategy_mode(cfg)
+        self._scalping_config = build_scalping_config(cfg) if self._strategy_mode == SCALPING_MODE else None
         self.contexts: List[MarketContext] = [
             MarketContext(symbol=symbol, timeframe=timeframe, params=params, run_mode=cfg.run_mode)
             for symbol, timeframe, params in markets
@@ -165,6 +247,22 @@ class MultiSymbolRunnerBase:
         self._risk_engine = risk_engine or RiskEngine(cfg)
         self._last_price_snapshot: Dict[str, float] = {}
         self._risk_state_cache: Optional[Dict[str, Any]] = None
+        self._initialize_context_strategies()
+
+    def _initialize_context_strategies(self) -> None:
+        for ctx in self.contexts:
+            ctx.strategy = self._build_context_strategy(ctx)
+
+    def _build_context_strategy(self, ctx: MarketContext):
+        if self._strategy_mode == SCALPING_MODE:
+            config = self._scalping_config or build_scalping_config(self._config)
+            return ScalpingStrategyAdapter(replace(config), ctx.symbol, ctx.timeframe, ctx.run_mode)
+        return EmaRsiAtrStrategy(
+            ctx.params,
+            symbol=ctx.symbol,
+            interval=ctx.timeframe,
+            run_mode=ctx.run_mode,
+        )
 
     async def run(self) -> None:
         await self._run_loop(max_cycles=None)
@@ -243,12 +341,14 @@ class MultiSymbolRunnerBase:
         return candles.tail(lookback).reset_index(drop=True)
 
     def _maybe_enter(self, ctx: MarketContext, frame: pd.DataFrame, latest_row: pd.Series) -> None:
+        ctx.target_notional = None
         signals = ctx.strategy.generate_signals(frame)
         if not signals:
             return
         signal = signals[-1]
         if signal.index != len(frame) - 1:
             return
+        ctx.target_notional = self._target_notional_from_signal(signal)
         allowed, block_reason = self._risk_engine.can_open_new_trades()
         if not allowed:
             self._log_sizing_skip(ctx, block_reason or "risk_halt")
@@ -312,6 +412,18 @@ class MultiSymbolRunnerBase:
             ctx.symbol,
             ctx.timeframe,
         )
+
+    @staticmethod
+    def _target_notional_from_signal(signal: StrategySignal) -> Optional[float]:
+        indicators = getattr(signal, "indicators", None) or {}
+        raw = indicators.get("size_usd")
+        if raw is None:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            return None
+        return value if value > 0 else None
 
     def _update_position(self, ctx: MarketContext, row: pd.Series) -> None:
         position = ctx.position
@@ -430,15 +542,21 @@ class MultiSymbolRunnerBase:
         if latest_scores:
             metrics["external_signal"] = statistics.mean(latest_scores.values())
         status_store.set_metrics(metrics)
-        if self.mode_label == "live":
+        if self.mode_label in {"live", "demo-live", "demo-live-smoke"}:
             status_store.set_live_metrics(metrics)
 
     def _balance_for_risk(self) -> float:
         return self.balance
 
     def _max_trade_notional(self, ctx: MarketContext, price: float) -> float | None:  # pragma: no cover - override hook
-        del ctx, price
-        return self._config.sizing.max_notional
+        del price
+        hinted = ctx.target_notional
+        configured = self._config.sizing.max_notional
+        if hinted is not None and hinted > 0:
+            if configured is None:
+                return hinted
+            return min(hinted, configured)
+        return configured
 
     def _build_sizing_context(
         self,
@@ -624,6 +742,7 @@ class MultiSymbolDryRunner(MultiSymbolRunnerBase):
         *,
         mode_label: str = "dry_run_multi",
         portfolio_meta: Optional[Dict[str, Any]] = None,
+        strategy_mode: Optional[str] = None,
     ) -> None:
         super().__init__(
             markets,
@@ -631,6 +750,7 @@ class MultiSymbolDryRunner(MultiSymbolRunnerBase):
             cfg,
             mode_label=mode_label,
             portfolio_meta=portfolio_meta,
+            strategy_mode=strategy_mode,
         )
 
 
@@ -641,7 +761,7 @@ class DryRunner(MultiSymbolDryRunner):
         timeframe: str,
         exchange_info: ExchangeInfoManager,
         params: StrategyParameters,
-        cfg: BotConfig,
+        strategy: Optional[Any] = None
     ) -> None:
         markets = [(symbol, timeframe, params)]
         portfolio = {
@@ -649,7 +769,14 @@ class DryRunner(MultiSymbolDryRunner):
             "timeframe": timeframe,
             "symbols": [{"symbol": symbol, "timeframe": timeframe}],
         }
-        super().__init__(markets, exchange_info, cfg, mode_label="dry_run", portfolio_meta=portfolio)
+        super().__init__(
+            markets,
+            exchange_info,
+            cfg,
+            mode_label="dry_run",
+            portfolio_meta=portfolio,
+            strategy_mode=resolve_strategy_mode(cfg),
+        )
 
 
 __all__ = [

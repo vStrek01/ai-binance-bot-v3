@@ -14,15 +14,30 @@ const liveMetricsList = document.getElementById("liveMetricsList");
 const portfolioLabelEl = document.getElementById("portfolioLabel");
 const portfolioMetricEl = document.getElementById("portfolioMetric");
 const portfolioList = document.getElementById("portfolioList");
+const resetStatsBtn = document.getElementById("resetStatsBtn");
+const resetStatsFeedback = document.getElementById("resetStatsFeedback");
 
 const MAX_TRADES_TO_DISPLAY = 50;
 const METRIC_DISPLAY_LIMIT = 12;
+const LIVE_METRIC_FIELDS = [
+  { key: "markets", label: "Markets" },
+  { key: "paper_balance", label: "Paper Balance" },
+  { key: "open_positions", label: "Open Positions" },
+  { key: "total_realized_pnl", label: "Realized PnL" },
+  { key: "win_rate", label: "Win Rate", formatter: (value) => formatPercent(value) },
+  { key: "profit_factor", label: "Profit Factor" },
+  { key: "expectancy", label: "Expectancy" },
+  { key: "sharpe", label: "Sharpe" },
+];
 
 function formatNumber(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "0.00";
   }
   const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return num > 0 ? "∞" : num < 0 ? "-∞" : "0";
+  }
   if (Math.abs(num) >= 1000) {
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
@@ -176,6 +191,94 @@ function renderMetricList(targetEl, metrics, emptyMessage) {
     });
 }
 
+function renderLiveMetrics(metrics) {
+  if (!metrics) {
+    renderMetricList(liveMetricsList, null, "Start demo-live to stream live metrics.");
+    return;
+  }
+
+  liveMetricsList.innerHTML = "";
+  LIVE_METRIC_FIELDS.forEach(({ key, label, formatter }) => {
+    const value = metrics[key];
+    if (value === undefined) {
+      return;
+    }
+    const li = document.createElement("li");
+    const formatted = formatter ? formatter(value) : formatNumber(value);
+    li.innerHTML = `<strong>${label}</strong>: ${formatted}`;
+    liveMetricsList.appendChild(li);
+  });
+}
+
+function deriveWinRateFromSummaries(summaries) {
+  if (!summaries || summaries.length === 0) {
+    return 0;
+  }
+  const totals = summaries.reduce(
+    (acc, entry) => {
+      const trades = Number(entry.trades ?? 0);
+      const wins = trades * Number(entry.win_rate ?? 0);
+      return { trades: acc.trades + trades, wins: acc.wins + wins };
+    },
+    { trades: 0, wins: 0 }
+  );
+  if (totals.trades === 0) {
+    return 0;
+  }
+  return totals.wins / totals.trades;
+}
+
+function buildLiveMetrics(status) {
+  const hasMetrics = (payload) => payload && Object.keys(payload).length > 0;
+  const source = hasMetrics(status.live_metrics) ? status.live_metrics : hasMetrics(status.metrics) ? status.metrics : null;
+  if (source) {
+    return {
+      markets: source.markets ?? (status.symbol_summaries?.length ?? 0),
+      paper_balance: source.paper_balance ?? status.balance ?? 0,
+      open_positions: source.open_positions ?? (status.open_positions?.length ?? 0),
+      total_realized_pnl: source.total_realized_pnl ?? status.realized_pnl ?? 0,
+      win_rate: source.win_rate ?? deriveWinRateFromSummaries(status.symbol_summaries),
+      profit_factor: source.profit_factor ?? 0,
+      expectancy: source.expectancy ?? 0,
+      sharpe: source.sharpe ?? 0,
+    };
+  }
+
+  const summaries = status.symbol_summaries ?? [];
+  const derived = summaries.reduce(
+    (acc, entry) => {
+      const trades = Number(entry.trades ?? 0);
+      const realized = Number(entry.realized_pnl ?? 0);
+      const openPnl = Number(entry.open_pnl ?? 0);
+      const winRate = Number(entry.win_rate ?? 0);
+      acc.trades += trades;
+      acc.winPoints += trades * winRate;
+      acc.realized += realized;
+      acc.openPnL += openPnl;
+      return acc;
+    },
+    { trades: 0, winPoints: 0, realized: 0, openPnL: 0 }
+  );
+  const recent = status.recent_trades ?? [];
+  const pnlWins = recent.filter((trade) => Number(trade.pnl ?? 0) > 0).map((trade) => Number(trade.pnl ?? 0));
+  const pnlLosses = recent.filter((trade) => Number(trade.pnl ?? 0) <= 0).map((trade) => Number(trade.pnl ?? 0));
+  const lossSum = pnlLosses.reduce((sum, value) => sum + value, 0);
+  const profitFactor = lossSum !== 0 ? (pnlWins.reduce((sum, value) => sum + value, 0) / Math.abs(lossSum)) : pnlWins.length ? Infinity : 0;
+  const winRate = derived.trades ? derived.winPoints / derived.trades : 0;
+  const expectancy = derived.trades ? derived.realized / derived.trades : 0;
+
+  return {
+    markets: summaries.length,
+    paper_balance: status.balance ?? 0,
+    open_positions: status.open_positions?.length ?? 0,
+    total_realized_pnl: derived.realized,
+    win_rate: winRate,
+    profit_factor: profitFactor,
+    expectancy,
+    sharpe: 0,
+  };
+}
+
 function renderPortfolio(snapshot) {
   if (!snapshot) {
     portfolioLabelEl.textContent = "—";
@@ -222,7 +325,7 @@ function updateUi(status) {
   renderSymbolStats(status.symbol_summaries);
   renderTrades(status.recent_trades);
   renderMetricList(metricsList, status.metrics, "Run a backtest or dry-run to populate metrics.");
-  renderMetricList(liveMetricsList, status.live_metrics, "Start demo-live to stream live metrics.");
+  renderLiveMetrics(buildLiveMetrics(status));
   renderPortfolio(status.portfolio);
 }
 
@@ -252,10 +355,42 @@ function connectWebSocket() {
       console.warn("Failed to parse websocket payload", error);
     }
   });
+
+  async function handleResetStats() {
+    if (!resetStatsBtn) {
+      return;
+    }
+    resetStatsBtn.disabled = true;
+    if (resetStatsFeedback) {
+      resetStatsFeedback.textContent = "Resetting stats...";
+    }
+    try {
+      const response = await fetch("/api/reset-stats", { method: "POST" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const payload = await response.json();
+      await fetchInitialStatus();
+      if (resetStatsFeedback) {
+        const timestamp = payload.updated_at ? new Date(payload.updated_at * 1000).toLocaleTimeString() : new Date().toLocaleTimeString();
+        resetStatsFeedback.textContent = `Stats reset at ${timestamp}`;
+      }
+    } catch (error) {
+      console.warn("Failed to reset stats", error);
+      if (resetStatsFeedback) {
+        resetStatsFeedback.textContent = `Reset failed: ${error.message}`;
+      }
+    } finally {
+      resetStatsBtn.disabled = false;
+    }
+  }
   ws.addEventListener("close", () => {
     setConnectionStatus("reconnecting");
-    setTimeout(connectWebSocket, 1500);
+    setTimeout(connectWebSocket, 750);
   });
+  if (resetStatsBtn) {
+    resetStatsBtn.addEventListener("click", handleResetStats);
+  }
   ws.addEventListener("error", () => {
     setConnectionStatus("disconnected");
     ws.close();

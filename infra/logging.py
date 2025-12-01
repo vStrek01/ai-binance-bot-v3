@@ -37,6 +37,7 @@ EVENT_CATEGORY_MAP: Dict[str, str] = {
     "KILL_SWITCH_TRIGGERED": "risk",
     "risk_kill_switch_triggered": "risk",
     "order_rejected_by_risk": "risk",
+    "SCALPING_SIGNAL": "strategy",
 }
 
 _context: Dict[str, Any] = {}
@@ -175,6 +176,30 @@ def get_equity_snapshot() -> Optional[Dict[str, Any]]:
         return dict(_equity_snapshot) if _equity_snapshot else None
 
 
+def reset_dashboard_state() -> None:
+    """Clear cached dashboard telemetry and wipe the optional state file."""
+
+    global _equity_snapshot, _backtest_summary
+    with _state_lock:
+        _recent_events.clear()
+        _positions.clear()
+        _equity_snapshot = None
+        _backtest_summary = None
+        if _state_file:
+            payload = {
+                "equity": None,
+                "positions": [],
+                "recent_events": [],
+                "backtest_summary": None,
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+            try:
+                _state_file.parent.mkdir(parents=True, exist_ok=True)
+                _state_file.write_text(json.dumps(payload, default=str, indent=2), encoding="utf-8")
+            except OSError:
+                logger.debug("Failed to reset dashboard state file", exc_info=True)
+
+
 default_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
 default_level = getattr(logging, default_level_name, logging.INFO)
 setup_logging(default_level)
@@ -187,4 +212,5 @@ __all__ = [
     "get_recent_events",
     "get_open_positions",
     "get_equity_snapshot",
+    "reset_dashboard_state",
 ]

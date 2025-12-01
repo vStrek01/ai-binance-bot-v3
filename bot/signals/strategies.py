@@ -98,7 +98,7 @@ class StrategySignal:
     entry_price: float
     stop_loss: float
     take_profit: float
-    indicators: Dict[str, float] = field(default_factory=dict)
+    indicators: Dict[str, float | None] = field(default_factory=dict)
     reason: str = ""
     confidence: float = 1.0
 
@@ -162,13 +162,13 @@ class EmaRsiAtrStrategy:
         if trend_window > 0:
             enriched["trend_ema"] = indicators.ema(close, trend_window)
         else:
-            enriched["trend_ema"] = pd.Series(pd.NA, index=enriched.index, dtype="float64")
+            enriched["trend_ema"] = pd.Series(pd.NA, index=enriched.index, dtype="Float64")
 
         higher_tf_window = int(self.params.higher_tf_trend_bars or 0)
         if higher_tf_window > 0:
             enriched["higher_tf_trend"] = indicators.ema(close, higher_tf_window)
         else:
-            enriched["higher_tf_trend"] = pd.Series(pd.NA, index=enriched.index, dtype="float64")
+            enriched["higher_tf_trend"] = pd.Series(pd.NA, index=enriched.index, dtype="Float64")
         return enriched
 
     def generate_signals(self, frame: pd.DataFrame) -> List[StrategySignal]:

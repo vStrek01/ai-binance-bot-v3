@@ -16,7 +16,8 @@ from bot.learning import TradeLearningStore
 from bot.live_logging import LiveTradeLogger, OrderAuditLogger
 from bot.execution.runners import MarketContext, MultiSymbolRunnerBase, PaperPosition
 from bot.risk import RiskEngine, TradeEvent, volatility_snapshot
-from bot.signals.strategies import StrategyParameters, StrategySignal
+from bot.signals.strategies import EmaRsiAtrStrategy, StrategyParameters, StrategySignal
+from bot.strategy_mode import resolve_strategy_mode
 from bot.status import status_store
 from bot.utils.logger import get_logger
 from exchange.data_health import get_data_health_monitor
@@ -84,6 +85,7 @@ class LiveTrader(MultiSymbolRunnerBase):
             initial_balance=initial_balance,
             status_via_exchange=True,
             risk_engine=self._risk_engine,
+            strategy_mode=resolve_strategy_mode(cfg),
         )
         self._ctx_lookup: Dict[str, MarketContext] = {ctx.symbol: ctx for ctx in self.contexts}
         self._trade_refresh_interval = max(5.0, min(float(self.poll_interval) * 2.0, 30.0))
@@ -329,6 +331,8 @@ class LiveTrader(MultiSymbolRunnerBase):
         if self.learning_store is None:
             return
         for ctx in self.contexts:
+            if not isinstance(ctx.strategy, EmaRsiAtrStrategy):
+                continue
             overrides = self.learning_store.best_params(ctx.symbol, ctx.timeframe)
             if not overrides:
                 continue
@@ -348,7 +352,12 @@ class LiveTrader(MultiSymbolRunnerBase):
                 self._applied_learning[key] = overrides
                 continue
             ctx.params = new_params
-            ctx.strategy = ctx.strategy.__class__(ctx.params)
+            ctx.strategy = EmaRsiAtrStrategy(
+                ctx.params,
+                symbol=ctx.symbol,
+                interval=ctx.timeframe,
+                run_mode=ctx.run_mode,
+            )
             self._applied_learning[key] = overrides
             self._last_learning_update[key] = now
             logger.info(

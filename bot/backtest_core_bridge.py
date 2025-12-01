@@ -9,6 +9,7 @@ import pandas as pd
 
 from bot.core.config import BotConfig
 from bot.signals.strategies import StrategyParameters
+from bot.strategy_mode import LLM_MODE, SCALPING_MODE, build_scalping_config, resolve_strategy_mode
 from core.engine import TradingEngine
 from core.models import Candle, RiskConfig
 from core.risk import RiskManager
@@ -17,6 +18,8 @@ from core.strategy import IndicatorConfig, Strategy
 from core.safety import SafetyLimits
 from infra.logging import logger
 from infra.persistence import save_backtest_results
+from strategies.baseline_rsi_trend import BaselineConfig, BaselineRSITrend
+from strategies.ema_stoch_scalping import EMAStochasticStrategy
 
 
 def _timestamp(value: Any) -> datetime:
@@ -60,7 +63,12 @@ def _build_risk_config(cfg: BotConfig) -> RiskConfig:
     )
 
 
-def _build_strategy(params: StrategyParameters, params_dict: Optional[Dict[str, Any]] = None) -> Strategy:
+def _build_strategy(
+    cfg: BotConfig,
+    params: StrategyParameters,
+    params_dict: Optional[Dict[str, Any]] = None,
+    strategy_mode: Optional[str] = None,
+) -> Strategy:
     payload = params_dict or asdict(params)
     defaults = IndicatorConfig()
     indicator_cfg = IndicatorConfig(
@@ -79,7 +87,26 @@ def _build_strategy(params: StrategyParameters, params_dict: Optional[Dict[str, 
         pullback_rsi_threshold=float(payload.get("pullback_rsi_threshold", defaults.pullback_rsi_threshold)),
         trend_strength_threshold=float(payload.get("trend_strength_threshold", defaults.trend_strength_threshold)),
     )
-    return Strategy(indicator_cfg, llm_adapter=None, optimized_params=payload)
+    mode = resolve_strategy_mode(cfg, override=strategy_mode)
+    allowed_modes = {"llm", "baseline", SCALPING_MODE}
+    if mode not in allowed_modes:
+        mode = LLM_MODE
+
+    baseline_strategy = None
+    scalping_strategy = None
+    if mode == "baseline":
+        baseline_strategy = BaselineRSITrend()
+    elif mode == SCALPING_MODE:
+        scalping_strategy = EMAStochasticStrategy(build_scalping_config(cfg))
+
+    return Strategy(
+        indicator_cfg,
+        llm_adapter=None,
+        optimized_params=payload,
+        strategy_mode=mode,
+        baseline_strategy=baseline_strategy,
+        scalping_strategy=scalping_strategy,
+    )
 
 
 def _build_safety_limits(cfg: BotConfig) -> SafetyLimits:
@@ -107,13 +134,14 @@ def run_core_backtest(
     params: StrategyParameters,
     params_dict: Optional[Dict[str, Any]] = None,
     params_source: str = "default",
+    strategy_mode: Optional[str] = None,
 ) -> dict:
     dataset = frame.tail(cfg.backtest.max_bars).reset_index(drop=True)
     if dataset.empty:
         raise ValueError("Backtest dataset is empty after applying max_bars")
 
     candles = _frame_to_candles(dataset, symbol)
-    strategy = _build_strategy(params, params_dict)
+    strategy = _build_strategy(cfg, params, params_dict, strategy_mode=strategy_mode)
     safety_limits = _build_safety_limits(cfg)
     risk_manager = RiskManager(_build_risk_config(cfg), safety_limits=safety_limits)
     position_manager = PositionManager(equity=cfg.backtest.initial_balance, run_mode="backtest")

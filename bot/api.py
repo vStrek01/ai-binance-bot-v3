@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -30,6 +31,7 @@ LOCAL_ORIGINS = [
     "http://localhost:8000",
 ]
 MAX_EVENT_LIMIT = 200
+WEBSOCKET_PUSH_INTERVAL = 0.75
 
 
 class NoCacheStaticFiles(StaticFiles):
@@ -70,6 +72,14 @@ async def api_status() -> Dict[str, Any]:
     return status_store.snapshot()
 
 
+@app.post("/api/reset-stats")
+async def api_reset_stats() -> Dict[str, Any]:
+    status_store.reset()
+    logging_utils.reset_dashboard_state()
+    logger.info("Dashboard stats reset via API")
+    return {"status": "ok", "updated_at": time.time()}
+
+
 def _sanitize_limit(limit: int) -> int:
     if limit <= 0:
         return 1
@@ -83,6 +93,8 @@ def _build_dashboard_state(limit: int) -> Dict[str, Any]:
         "equity": logging_utils.get_equity_snapshot(),
         "positions": logging_utils.get_open_positions(),
         "recent_events": logging_utils.get_recent_events(limit=sanitized),
+        "symbol_summaries": status_snapshot.get("symbol_summaries", []),
+        "recent_trades": status_snapshot.get("recent_trades", []),
         "limit": sanitized,
         "run_mode": status_snapshot.get("mode"),
         "runtime": status_snapshot.get("runtime", {}),
@@ -118,7 +130,7 @@ async def websocket_status(websocket: WebSocket) -> None:
     try:
         while True:
             await websocket.send_json(status_store.snapshot())
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(WEBSOCKET_PUSH_INTERVAL)
     except (WebSocketDisconnect, ConnectionClosedOK):
         logger.info("Status websocket disconnected cleanly")
     except Exception as exc:  # pragma: no cover - defensive

@@ -25,7 +25,8 @@ def test_daily_drawdown_block():
 
 def test_demo_live_oversized_position_rejected(tmp_path):
     cfg = load_config(base_dir=tmp_path, mode_override="demo-live")
-    engine = RiskEngine(cfg)
+    tight_cfg = cfg.model_copy(update={"risk": cfg.risk.model_copy(update={"max_notional_per_symbol": 500.0})})
+    engine = RiskEngine(tight_cfg)
     exposure = ExposureState(per_symbol={}, total=0.0)
     request = OpenTradeRequest(
         symbol="BTCUSDT",
@@ -44,10 +45,11 @@ def test_demo_live_oversized_position_rejected(tmp_path):
 
 def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
     cfg = load_config(base_dir=tmp_path, mode_override="demo-live")
-    engine = RiskEngine(cfg)
+    strict_cfg = cfg.model_copy(update={"risk": cfg.risk.model_copy(update={"max_daily_loss_pct": 0.1})})
+    engine = RiskEngine(strict_cfg)
     exposure = ExposureState(per_symbol={}, total=0.0)
     engine.update_equity(1_000.0)
-    engine.register_trade(TradeEvent(pnl=-120.0, equity=880.0))
+    engine.register_trade(TradeEvent(pnl=-150.0, equity=850.0))
     blocked = engine.evaluate_open(
         OpenTradeRequest(
             symbol="BTCUSDT",
@@ -64,8 +66,10 @@ def test_demo_live_halts_on_daily_loss_and_loss_streak(tmp_path):
     assert blocked.reason in {"daily_loss_pct", "daily_drawdown"}
     assert engine.current_state().trading_mode == TradingMode.HALTED_DAILY_LOSS
 
-    relaxed_cfg = cfg.model_copy(update={"risk": cfg.risk.model_copy(update={"max_daily_loss_pct": 0.5})})
-    streak_engine = RiskEngine(relaxed_cfg)
+    streak_cfg = cfg.model_copy(
+        update={"risk": cfg.risk.model_copy(update={"max_daily_loss_pct": 0.5, "max_consecutive_losses": 3})}
+    )
+    streak_engine = RiskEngine(streak_cfg)
     streak_engine.update_equity(1_000.0)
     equities = (995.0, 990.0, 985.0)
     for idx, equity in enumerate(equities, start=1):

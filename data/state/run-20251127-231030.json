@@ -1,0 +1,29 @@
+{
+  "live_positions": {
+    "positions": {
+      "ETCUSDT": {
+        "symbol": "ETCUSDT",
+        "timeframe": "1m",
+        "side": "SHORT",
+        "direction": -1,
+        "quantity": 150.17,
+        "entry_price": 13.81507544783,
+        "mark_price": 13.84348919,
+        "position_side": "BOTH"
+      },
+      "LTCUSDT": {
+        "symbol": "LTCUSDT",
+        "timeframe": "1m",
+        "side": "SHORT",
+        "direction": -1,
+        "quantity": 23.996,
+        "entry_price": 86.53008918153,
+        "mark_price": 86.57,
+        "position_side": "BOTH"
+      }
+    },
+    "mode_label": "demo-live",
+    "run_mode": "demo-live",
+    "updated_at": 1764285172.7069185
+  }
+}

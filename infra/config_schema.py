@@ -11,6 +11,16 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validat
 ensure_pydantic_v2()
 
 RunMode = Literal["backtest", "dry-run", "demo-live", "live"]
+StrategyMode = Literal["llm", "baseline", "scalping"]
+
+_STRATEGY_MODE_ALIASES = {
+    "scalping": "scalping",
+    "ema_stoch": "scalping",
+    "ema_stochastic": "scalping",
+    "ema_stoch_scalping": "scalping",
+    "baseline": "baseline",
+    "llm": "llm",
+}
 
 DEMO_REST_HOSTS: tuple[str, ...] = ("demo-fapi.binance.com", "testnet.binancefuture.com")
 DEMO_WS_HOSTS: tuple[str, ...] = ("binancefuture.com", "demo-fapi.binance.com")
@@ -54,6 +64,20 @@ class StrategyBaseConfig(BaseModel):
     min_atr_pct: float = Field(0.1, ge=0.0)
     max_atr_pct: float = Field(3.0, ge=0.0)
     no_trade_sessions: List[SessionWindow] = Field(default_factory=list)
+
+
+class ScalpingStrategyConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fast_ema: int = Field(50, ge=1)
+    slow_ema: int = Field(200, ge=1)
+    k_period: int = Field(14, ge=1)
+    d_period: int = Field(3, ge=1)
+    oversold: float = Field(20.0, ge=0.0, le=100.0)
+    overbought: float = Field(80.0, ge=0.0, le=100.0)
+    stop_loss_pct: float = Field(0.002, gt=0.0, lt=1.0)
+    take_profit_pct: float = Field(0.003, gt=0.0, lt=1.0)
+    size_usd: float = Field(1_000.0, gt=0.0)
 
 
 class StrategyFilters(BaseModel):
@@ -362,6 +386,9 @@ class AppConfig(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     symbol_risk: Dict[str, SymbolRiskConfig] = Field(default_factory=dict)
     baseline_strategy: StrategyBaseConfig = Field(default_factory=StrategyBaseConfig)
+    scalping_strategy: ScalpingStrategyConfig = Field(default_factory=ScalpingStrategyConfig)
+    strategy_mode: StrategyMode = "scalping"
+    core_strategy_mode: StrategyMode = "scalping"
     enable_llm_signals: bool = False
     llm_max_confidence: float = Field(0.8, ge=0.0, le=1.0)
     trading_timezone: str = "UTC"
@@ -383,6 +410,14 @@ class AppConfig(BaseModel):
         if value not in allowed:
             raise ValueError(f"Unsupported interval {value}. Allowed: {sorted(allowed)}")
         return value
+
+    @field_validator("strategy_mode", "core_strategy_mode", mode="before")
+    @classmethod
+    def _normalize_strategy_mode(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = str(value).strip().lower().replace("-", "_")
+        return _STRATEGY_MODE_ALIASES.get(normalized, normalized)
 
     @model_validator(mode="after")
     def _validate_modes(self) -> "AppConfig":
@@ -427,6 +462,10 @@ class AppConfig(BaseModel):
                 raise ValueError("Demo-live requires exchange.ws_market_url to point to Binance Futures testnet streams")
             if ws_user_url and not any(host in ws_user_url for host in DEMO_WS_HOSTS):
                 raise ValueError("Demo-live requires exchange.ws_user_url to remain on the Binance Futures testnet")
+
+        resolved_mode = self.strategy_mode or self.core_strategy_mode or "scalping"
+        self.strategy_mode = resolved_mode
+        self.core_strategy_mode = resolved_mode
 
         if self.run_mode == "live":
             missing = [name for name in ("api_key", "api_secret") if not getattr(self.exchange, name)]

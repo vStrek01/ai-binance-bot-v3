@@ -8,7 +8,7 @@ import pytest
 
 from bot.execution.market_loop import MarketLoop
 from bot.execution.runners import MarketContext
-from bot.signals.strategies import StrategyParameters, build_parameters
+from bot.signals.strategies import EmaRsiAtrStrategy, StrategyParameters, build_parameters
 from infra.config_loader import load_config as load_app_config
 
 
@@ -118,6 +118,7 @@ def test_demo_live_strategy_emits_decision(monkeypatch: pytest.MonkeyPatch, tmp_
     monkeypatch.setattr("bot.signals.indicators.atr", fake_atr)
 
     ctx = MarketContext(symbol="BTCUSDT", timeframe="1m", params=params, run_mode="demo-live")
+    ctx.strategy = EmaRsiAtrStrategy(params, symbol="BTCUSDT", interval="1m", run_mode="demo-live")
     loop = MarketLoop(
         ctx,
         cfg,

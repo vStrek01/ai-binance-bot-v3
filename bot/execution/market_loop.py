@@ -74,11 +74,13 @@ class MarketLoop:
         available_balance: float,
         exposure: ExposureState,
     ) -> Optional[EntryPlan]:
+        self._ctx.target_notional = None
         if not self._data_health_allows_trade(stage="entry"):
             return None
         signal = self._latest_signal(frame)
         if signal is None:
             return None
+        self._ctx.target_notional = self._extract_target_notional(signal)
         price = float(latest_row["close"])
         volatility = volatility_snapshot(frame, self._cfg)
         if self._cfg.risk.require_sl_tp and (signal.stop_loss is None or signal.take_profit is None):
@@ -272,6 +274,18 @@ class MarketLoop:
             message="Market loop blocked due to stale data",
             **payload,
         )
+
+    @staticmethod
+    def _extract_target_notional(signal: StrategySignal) -> Optional[float]:
+        indicators = getattr(signal, "indicators", None) or {}
+        raw = indicators.get("size_usd")
+        if raw is None:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            return None
+        return value if value > 0 else None
 
 
 __all__ = ["MarketLoop", "EntryPlan", "ExitPlan"]

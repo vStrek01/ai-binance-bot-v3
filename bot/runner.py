@@ -26,6 +26,7 @@ from bot.optimization_loader import load_best_params
 from bot.portfolio import build_portfolio_meta, select_top_markets
 from bot.pipeline import FullCycleRunner
 from bot.simulator import DryRunner, MultiSymbolDryRunner
+from bot.strategy_mode import resolve_strategy_mode
 from bot.live_trader import LiveTrader
 from bot.rl.agents import ActorCriticAgent
 from bot.rl.env import FuturesTradingEnv
@@ -46,6 +47,58 @@ from infra.state_store import StateStore
 import infra.logging as logging_utils
 
 logger = get_logger(__name__)
+
+
+_DEFAULT_SCALPING_SYMBOLS: tuple[str, ...] = (
+    "BTCUSDT",
+    "ETHUSDT",
+    "BCHUSDT",
+    "ETCUSDT",
+    "LTCUSDT",
+    "XRPUSDT",
+)
+
+
+def _normalize_symbol_list(values: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for raw in values:
+        candidate = str(raw or "").strip().upper()
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        normalized.append(candidate)
+    return normalized
+
+
+def _parse_symbol_csv(payload: Optional[str]) -> list[str]:
+    if not payload:
+        return []
+    parts = [token for token in payload.split(",") if token]
+    return _normalize_symbol_list(parts)
+
+
+def _scalping_symbol_defaults(cfg: BotConfig) -> list[str]:
+    env_symbols = _parse_symbol_csv(os.getenv("SCALPING_SYMBOLS"))
+    if env_symbols:
+        return env_symbols
+    env_single = os.getenv("SCALPING_SYMBOL")
+    if env_single and env_single.strip():
+        single = _normalize_symbol_list([env_single])
+        if single:
+            return single
+    config_symbols = getattr(cfg, "symbols", None)
+    if config_symbols:
+        normalized = _normalize_symbol_list(config_symbols)
+        if normalized:
+            return normalized
+    universe = getattr(cfg, "universe", None)
+    demo_symbols = getattr(universe, "demo_symbols", None)
+    if demo_symbols:
+        normalized = _normalize_symbol_list(demo_symbols)
+        if normalized:
+            return normalized
+    return list(_DEFAULT_SCALPING_SYMBOLS)
 
 
 CommandHandler = Callable[[BotConfig, argparse.Namespace], None]
@@ -625,15 +678,25 @@ def _resolve_symbols(
     exchange: ExchangeInfoManager,
     *,
     demo_mode: bool = False,
+    fallback_symbols: Optional[Sequence[str]] = None,
 ) -> list[str]:
+    candidates: list[str]
     if symbols_arg:
         if symbols_arg.strip().upper() == "ALL":
             return _all_supported_symbols(cfg, exchange, demo_mode=demo_mode)
         candidates = [token.strip().upper() for token in symbols_arg.split(",") if token.strip()]
     elif symbol:
         candidates = [symbol.upper()]
+    elif fallback_symbols:
+        candidates = _normalize_symbol_list(fallback_symbols)
+        if not candidates:
+            raise ValueError("No fallback symbols available for demo run")
+        logger.info(
+            "No symbols provided via CLI; defaulting to scalping symbols: %s",
+            ", ".join(candidates),
+        )
     else:
-        raise ValueError("Provide --symbol or --symbols for dry-run")
+        raise ValueError("No symbols resolved. Provide --symbol/--symbols or set SCALPING_SYMBOLS")
     available = set(exchange.symbols.keys())
     if available:
         validated = [sym for sym in candidates if sym in available]
@@ -672,8 +735,13 @@ def cmd_dry_run(cfg: BotConfig, args: argparse.Namespace) -> None:
     exchange = ExchangeInfoManager(cfg, client=build_data_client(cfg))
     exchange.refresh(force=True)
     use_best = getattr(args, "use_best", False)
+    strategy_mode = resolve_strategy_mode(cfg)
     symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange)
     timeframe = args.interval
+    cycles = getattr(args, "cycles", None)
+    if cycles is not None and cycles <= 0:
+        logger.warning("Ignoring non-positive cycles value for dry-run: %s", cycles)
+        cycles = None
     if len(symbols) == 1:
         params = _build_strategy_params(cfg, symbols[0], timeframe, use_best, rl_context="dry_run")
         runner = DryRunner(symbols[0], timeframe, exchange, params, cfg)
@@ -685,8 +753,18 @@ def cmd_dry_run(cfg: BotConfig, args: argparse.Namespace) -> None:
             "timeframe": timeframe,
             "metric": "manual",
         }
-        runner = MultiSymbolDryRunner(markets, exchange, cfg, mode_label="dry_run_multi", portfolio_meta=portfolio_meta)
-    asyncio.run(runner.run())
+        runner = MultiSymbolDryRunner(
+            markets,
+            exchange,
+            cfg,
+            mode_label="dry_run_multi",
+            portfolio_meta=portfolio_meta,
+            strategy_mode=strategy_mode,
+        )
+    if cycles is not None:
+        asyncio.run(runner.run_cycles(cycles))
+    else:
+        asyncio.run(runner.run())
 
 
 def cmd_dry_run_portfolio(cfg: BotConfig, args: argparse.Namespace) -> None:
@@ -723,7 +801,14 @@ def cmd_dry_run_portfolio(cfg: BotConfig, args: argparse.Namespace) -> None:
         }
     if not markets:
         raise RuntimeError("Portfolio dry-run requires at least one market")
-    runner = MultiSymbolDryRunner(markets, exchange, cfg, mode_label="dry_run_portfolio", portfolio_meta=portfolio_meta)
+    runner = MultiSymbolDryRunner(
+        markets,
+        exchange,
+        cfg,
+        mode_label="dry_run_portfolio",
+        portfolio_meta=portfolio_meta,
+        strategy_mode=resolve_strategy_mode(cfg),
+    )
     asyncio.run(runner.run())
 
 
@@ -767,12 +852,20 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
     state_store = runtime_ctx.state_store if runtime_ctx else None
     resume_run = getattr(args, "resume_run", None) or os.getenv("BOT_RESUME_RUN")
     use_best = getattr(args, "use_best", False)
+    scalping_symbols = _scalping_symbol_defaults(cfg)
     if cfg.runtime.dry_run:
         logger.info("BOT_DRY_RUN detected; running demo-live smoke test with paper execution only")
         data_client = build_data_client(cfg)
         exchange = ExchangeInfoManager(cfg, client=data_client)
         exchange.refresh(force=True)
-        symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
+        symbols = _resolve_symbols(
+            cfg,
+            args.symbol,
+            getattr(args, "symbols", None),
+            exchange,
+            demo_mode=True,
+            fallback_symbols=scalping_symbols,
+        )
         markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
         _emit_demo_live_snapshot(cfg, symbols=symbols, interval=args.interval, dry_run=True)
         logger.info("Initializing demo-live dry-run runner for symbols: %s", ", ".join(symbols))
@@ -788,6 +881,7 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
             cfg,
             mode_label="demo-live-smoke",
             portfolio_meta=portfolio_meta,
+            strategy_mode=resolve_strategy_mode(cfg),
         )
         asyncio.run(runner.run_cycles(1))
         return
@@ -802,7 +896,14 @@ def cmd_demo_live(cfg: BotConfig, args: argparse.Namespace) -> None:
             trading_client=trading_client,
             state_store=state_store,
         )
-    symbols = _resolve_symbols(cfg, args.symbol, getattr(args, "symbols", None), exchange, demo_mode=True)
+    symbols = _resolve_symbols(
+        cfg,
+        args.symbol,
+        getattr(args, "symbols", None),
+        exchange,
+        demo_mode=True,
+        fallback_symbols=scalping_symbols,
+    )
     markets = _build_markets(cfg, symbols, args.interval, use_best, rl_context="live")
     logger.info("Initializing demo-live runner for symbols: %s", ", ".join(symbols))
     portfolio_meta = {
@@ -910,6 +1011,11 @@ def build_parser(cfg: BotConfig) -> argparse.ArgumentParser:
     )
     dry_run.add_argument("--interval", required=True, help="Interval to trade")
     dry_run.add_argument("--use-best", action="store_true", help="Apply optimized parameters when available")
+    dry_run.add_argument(
+        "--cycles",
+        type=int,
+        help="Number of poll cycles to run before shutting down (default: run until interrupted)",
+    )
     dry_run.set_defaults(func=cmd_dry_run)
 
     dry_run_portfolio = subparsers.add_parser(

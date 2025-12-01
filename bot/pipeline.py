@@ -15,6 +15,7 @@ from bot.optimizer import Optimizer, load_best_parameters
 from bot.simulator import MultiSymbolDryRunner
 from bot.status import status_store
 from bot.strategies import StrategyParameters, build_parameters
+from bot.strategy_mode import resolve_strategy_mode
 from bot.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -154,7 +155,12 @@ class FullCycleRunner:
         return plans
 
     async def _launch_runtime(self, markets: Sequence[Tuple[str, str, StrategyParameters]]) -> None:
-        runner = MultiSymbolDryRunner(markets, self.exchange, self._config)
+        runner = MultiSymbolDryRunner(
+            markets,
+            self.exchange,
+            self._config,
+            strategy_mode=resolve_strategy_mode(self._config),
+        )
         await asyncio.gather(runner.run(), self._serve_dashboard())
 
     async def _serve_dashboard(self) -> None:

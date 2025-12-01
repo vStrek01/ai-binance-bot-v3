@@ -172,7 +172,7 @@ class BacktestRunner:
                         },
                     )
 
-            self._maybe_close_on_signal(signal.action, candle, idx, len(candles), trade_pnls)
+            self._maybe_close_on_signal(signal, candle, idx, len(candles), trade_pnls)
 
             equity_curve.append(self.position_manager.equity)
             open_bars.append(len(self.position_manager.get_open_positions()))
@@ -297,12 +297,12 @@ class BacktestRunner:
             return pos.take_profit, "take_profit"
         return None, None
 
-    def _maybe_close_on_signal(self, signal: Side, candle: Candle, idx: int, total: int, trade_pnls: List[float]) -> None:
+    def _maybe_close_on_signal(self, signal: Signal, candle: Candle, idx: int, total: int, trade_pnls: List[float]) -> None:
         for pos in list(self.position_manager.get_open_positions()):
             should_close = False
-            if signal == Side.FLAT:
+            if signal.action == Side.FLAT and signal.reason != "hold_position_no_new_signal":
                 should_close = True
-            elif signal != pos.side:
+            elif signal.action != pos.side:
                 should_close = True
             if idx == total - 1:
                 should_close = True

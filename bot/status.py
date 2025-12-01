@@ -331,7 +331,7 @@ class StatusStore:
         with self._lock:
             baseline = self._default_state()
             baseline["updated_at"] = time.time()
-            self._state.update(baseline)
+            self._state = baseline
             self._persist_locked()
 
     def _maybe_reload_locked(self) -> None:

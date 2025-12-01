@@ -1,0 +1,29 @@
+{
+  "live_positions": {
+    "positions": {
+      "LTCUSDT": {
+        "symbol": "LTCUSDT",
+        "timeframe": "1m",
+        "side": "LONG",
+        "direction": 1,
+        "quantity": 23.923,
+        "entry_price": 86.63,
+        "mark_price": 86.67,
+        "position_side": "BOTH"
+      },
+      "XRPUSDT": {
+        "symbol": "XRPUSDT",
+        "timeframe": "1m",
+        "side": "LONG",
+        "direction": 1,
+        "quantity": 940.0,
+        "entry_price": 2.207899265957,
+        "mark_price": 2.2059,
+        "position_side": "BOTH"
+      }
+    },
+    "mode_label": "demo-live",
+    "run_mode": "demo-live",
+    "updated_at": 1764285319.514675
+  }
+}

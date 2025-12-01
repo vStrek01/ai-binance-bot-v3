@@ -45,6 +45,12 @@
         border: 1px solid rgba(148, 163, 184, 0.12);
         box-shadow: 0 10px 25px rgba(2, 6, 23, 0.5);
       }
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+      }
       section.card-table {
         display: flex;
         flex-direction: column;
@@ -83,6 +89,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        vertical-align: middle;
       }
       table th {
         color: #94a3b8;
@@ -145,11 +152,37 @@
         text-align: right;
         font-variant-numeric: tabular-nums;
       }
+      th.numeric {
+        text-align: right;
+      }
       .span-2 {
         grid-column: span 2;
       }
       .list-title {
         margin-bottom: 0.75rem;
+      }
+      .ghost-button {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: transparent;
+        color: #f8fafc;
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.2s ease;
+      }
+      .ghost-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .ghost-button:not(:disabled):hover {
+        background-color: rgba(59, 130, 246, 0.2);
+      }
+      .reset-status {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        min-height: 1em;
+        margin: 0.5rem 0 0;
       }
       @media (max-width: 600px) {
         main {
@@ -220,17 +253,19 @@
         </div>
       </section>
       <section class="card-table span-2">
-        <h2>Symbol Stats</h2>
+        <div class="section-header">
+          <h2>Symbol Stats</h2>
+        </div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Symbol</th>
                 <th>Interval</th>
-                <th>Trades</th>
-                <th>Win %</th>
-                <th>Realized</th>
-                <th>Open PnL</th>
+                <th class="numeric">Trades</th>
+                <th class="numeric">Win %</th>
+                <th class="numeric">Realized</th>
+                <th class="numeric">Open PnL</th>
               </tr>
             </thead>
             <tbody id="symbolStatsBody">
@@ -256,7 +291,11 @@
         </ul>
       </section>
       <section>
-        <h2>Live Metrics</h2>
+        <div class="section-header">
+          <h2>Live Metrics</h2>
+          <button id="resetStatsBtn" class="ghost-button" type="button">Reset Stats</button>
+        </div>
+        <p id="resetStatsFeedback" class="reset-status"></p>
         <ul id="liveMetricsList">
           <li>Start demo-live to stream live metrics.</li>
         </ul>

@@ -1,0 +1,29 @@
+{
+  "live_positions": {
+    "positions": {
+      "ETCUSDT": {
+        "symbol": "ETCUSDT",
+        "timeframe": "1m",
+        "side": "LONG",
+        "direction": 1,
+        "quantity": 148.63,
+        "entry_price": 13.88999757788,
+        "mark_price": 13.861,
+        "position_side": "BOTH"
+      },
+      "XRPUSDT": {
+        "symbol": "XRPUSDT",
+        "timeframe": "1m",
+        "side": "SHORT",
+        "direction": -1,
+        "quantity": 646.5,
+        "entry_price": 2.197901840681,
+        "mark_price": 2.198,
+        "position_side": "BOTH"
+      }
+    },
+    "mode_label": "demo-live",
+    "run_mode": "demo-live",
+    "updated_at": 1764290540.2242413
+  }
+}

@@ -14,6 +14,7 @@ bot/runner.py      # Unified CLI (download/backtest/optimize/dry-run/live/api)
 Pipeline: **DATA → STRATEGY → LLM (optional) → RISK → ORDER → EXECUTION → STATE**
 
 - **LLM adapter** enforces a strict JSON schema with `action|confidence|reason` only; invalid or unsafe output falls back to `FLAT`.
+- **EMA + Stochastic scalper** (`strategy_mode=scalping`) watches 1m candles, filters by EMA50/EMA200 trend, and triggers when Stochastic %K exits 20/80 with configurable `size_usd`, stop loss, and take profit levels under `scalping_strategy`.
 - **Risk manager** enforces max risk per trade, daily drawdown, open-position limits, leverage caps, and R-based sizing.
 - **Order router** sends idempotent client order IDs, attaches stop-loss/take-profit protections, and retries transient failures.
 - **Backtester** replays candles through the same strategy + risk stack with spread, slippage, and fees to produce equity curves and metrics.
@@ -40,6 +41,29 @@ BOT_LIVE_TRADING=1 BOT_CONFIRM_LIVE=YES_I_UNDERSTAND_THE_RISK python -m bot.runn
 ```
 Live trading against production endpoints still requires entering real API keys plus whatever manual confirmations you configure—keep `BOT_API_HOST` at `127.0.0.1` so the observability API is never exposed publicly.
 
+## EMA + Stochastic scalper demo config
+
+`config_scalping_demo.yaml` ships with everything wired for the scalper on Binance Futures testnet: `strategy_mode: scalping`, the six curated 1m pairs (BTCUSDT, ETHUSDT, BCHUSDT, ETCUSDT, LTCUSDT, XRPUSDT), leverage capped at 10x, and `size_usd=1000` per signal. Point the loader at it via `BOT_CONFIG_PATH` (or `BOT_CONFIG_FILE` / `BOT_CONFIG`) and the bot will use that configuration without overwriting your custom `config.yaml`:
+
+```powershell
+$env:BOT_CONFIG_PATH="config_scalping_demo.yaml"
+```
+
+- Core-engine backtest of the scalper on cached BTCUSDT klines:
+
+```bash
+BOT_CONFIG_PATH=config_scalping_demo.yaml python -m bot.runner backtest --engine core --symbol BTCUSDT --interval 1m
+```
+
+- Demo-live (testnet) session on all six scalper symbols with 1m candles:
+
+```bash
+BOT_CONFIG_PATH=config_scalping_demo.yaml \
+python -m bot.runner demo-live --symbols BTCUSDT,ETHUSDT,BCHUSDT,ETCUSDT,LTCUSDT,XRPUSDT --interval 1m
+```
+
+Both flows inherit the scalper settings from the YAML file—no extra CLI switches are required beyond setting `BOT_CONFIG_PATH`.
+
 ## Disclaimer / Risk Warning
 
 - This repository is **not** financial advice—use it for research and education only.
@@ -49,6 +73,17 @@ Live trading against production endpoints still requires entering real API keys 
 - Mainnet live mode remains gated behind confirmations and should only be used by operators who fully understand the stack.
 
 ## Common Workflows
+
+### One-click scalper scripts (HYPER_AGGRESSIVE)
+PowerShell launchers live in the repo root and default to Binance testnet plus the `HYPER_AGGRESSIVE` scalper preset:
+
+- `run_scalper_backtest.ps1` – activates `.venv` (if present) and replays BTCUSDT 1m data via `python -m bot.runner backtest --engine core ...` using `config_scalping_demo.yaml`.
+- `run_scalper_demo.ps1` – same setup but starts `python -m bot.runner demo-live` so you can observe the bot on the Futures testnet.
+- `run_dashboard.ps1` – boots the FastAPI/uvicorn API dashboard at `127.0.0.1:8000` for monitoring signals, equity, and events.
+- `run_all.ps1` – opens a new PowerShell window for `run_scalper_demo.ps1` and launches the dashboard in the current window for a full monitoring stack with one double-click.
+- `run_tests_then_all.ps1` – activates the venv, runs `python -m pytest`, reports pass/fail, then launches the demo scalper + dashboard even if tests failed.
+
+All four scripts export `SCALPING_PRESET=HYPER_AGGRESSIVE`, set `BOT_CONFIG_PATH=config_scalping_demo.yaml` if unset, and respect the repo’s existing risk protections (SL/TP/leverage) without any extra tuning.
 
 ### Run a baseline backtest
 - Env vars: none required.

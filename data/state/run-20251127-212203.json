@@ -1,0 +1,19 @@
+{
+  "live_positions": {
+    "positions": {
+      "BCHUSDT": {
+        "symbol": "BCHUSDT",
+        "timeframe": "1m",
+        "side": "LONG",
+        "direction": 1,
+        "quantity": 0.777,
+        "entry_price": 535.58,
+        "mark_price": 535.31,
+        "position_side": "BOTH"
+      }
+    },
+    "mode_label": "demo-live",
+    "run_mode": "demo-live",
+    "updated_at": 1764280897.4735436
+  }
+}

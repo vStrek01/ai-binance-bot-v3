@@ -55,7 +55,9 @@ def load_config(
 
     dotenv_path = (base_dir / ".env") if base_dir else None
     load_dotenv(dotenv_path=dotenv_path, override=False)
-    file_config = _read_config_file(path)
+    env_override = os.getenv("BOT_CONFIG_PATH") or os.getenv("BOT_CONFIG_FILE") or os.getenv("BOT_CONFIG")
+    config_path = env_override or path
+    file_config = _read_config_file(config_path)
     run_mode = _resolve_run_mode(file_config.get("run_mode"), mode_override)
     env_overrides = _build_env_overrides(run_mode, file_config.get("exchange"))
     merged = _merge_dicts(file_config, env_overrides)
